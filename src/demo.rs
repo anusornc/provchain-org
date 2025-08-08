@@ -1,5 +1,6 @@
 use crate::blockchain::Blockchain;
 use crate::rdf_store::RDFStore;
+use std::fs;
 
 pub fn run_demo() {
     let mut bc = Blockchain::new();
@@ -32,10 +33,23 @@ pub fn run_demo() {
 
     println!("Blockchain valid? {}", bc.is_valid());
 
-    let query = "SELECT ?s ?p ?o WHERE { ?s ?p ?o }";
-    if let oxigraph::sparql::QueryResults::Solutions(solutions) = rdf_store.query(query) {
-        for solution in solutions {
-            println!("{:?}", solution.unwrap());
+    // Run Step 4 queries if present in ./queries/
+    let queries = vec![
+        "trace_by_batch.sparql",
+        "trace_origin.sparql",
+        "env_conditions_for_batch.sparql",
+        "blockchain_metadata.sparql",
+    ];
+
+    for qfile in queries {
+        let path = format!("queries/{}", qfile);
+        if let Ok(qtext) = fs::read_to_string(&path) {
+            println!("\n=== Running query: {} ===", qfile);
+            if let oxigraph::sparql::QueryResults::Solutions(solutions) = rdf_store.query(&qtext) {
+                for solution in solutions {
+                    println!("{:?}", solution.unwrap());
+                }
+            }
         }
     }
 }
