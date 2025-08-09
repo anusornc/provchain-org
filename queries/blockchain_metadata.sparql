@@ -1,14 +1,18 @@
-PREFIX ex: <http://example.org/>
-PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX pc: <http://provchain.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-SELECT ?block ?index ?timestamp ?hash ?previousHash
+SELECT ?block ?index ?timestamp ?hash ?previousHash ?dataGraphIRI
 WHERE {
-    GRAPH <http://example.org/blockchain> {
-        ?block a ex:Block ;
-               ex:index ?index ;
-               ex:timestamp ?timestamp ;
-               ex:hash ?hash ;
-               ex:previous_hash ?previousHash .
-    }
+  GRAPH pc:blockchain {
+    ?block rdf:type ?blockType .
+    FILTER(?blockType = pc:GenesisBlock || ?blockType = pc:Block)
+    
+    ?block pc:hasIndex ?index ;
+           pc:hasTimestamp ?timestamp ;
+           pc:hasHash ?hash ;
+           pc:hasPreviousHash ?previousHash ;
+           pc:hasDataGraphIRI ?dataGraphIRI .
+  }
 }
 ORDER BY ?index

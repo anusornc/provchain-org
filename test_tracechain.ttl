@@ -1,0 +1,4 @@
+@prefix pc: <http://provchain.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+pc:testData pc:hasValue "Updated with ProvChain namespace" .

@@ -37,11 +37,11 @@ fn test_block_metadata_storage_and_query() {
     let block = Block::new(1, "test data".into(), "some_hash".into());
     store.add_block_metadata(&block);
 
-    let query = r#"PREFIX ex: <http://example.org/>
+    let query = r#"PREFIX tc: <http://tracechain.org/>
         SELECT ?hash
-        FROM <http://example.org/blockchain>
+        FROM <http://tracechain.org/blockchain>
         WHERE {
-            <http://example.org/block/1> ex:hash ?hash .
+            <http://tracechain.org/block/1> tc:hasHash ?hash .
         }
     "#;
 
