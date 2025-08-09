@@ -68,6 +68,10 @@ impl Blockchain {
             chain: Vec::new(),
             rdf_store: RDFStore::new(),
         };
+        
+        // Load the traceability ontology
+        bc.load_ontology();
+        
         let genesis_block = bc.create_genesis_block();
         
         // Add genesis block data to RDF store
@@ -143,6 +147,16 @@ impl Blockchain {
         
         // Compare canonical hashes - this handles blank node differences correctly
         temp_canonical_hash == main_canonical_hash
+    }
+
+    fn load_ontology(&mut self) {
+        if let Ok(ontology_data) = std::fs::read_to_string("ontology/traceability.owl.ttl") {
+            let ontology_graph = NamedNode::new("http://provchain.org/ontology").unwrap();
+            self.rdf_store.load_ontology(&ontology_data, &ontology_graph);
+            println!("Loaded traceability ontology from ontology/traceability.owl.ttl");
+        } else {
+            eprintln!("Warning: Could not load ontology file ontology/traceability.owl.ttl");
+        }
     }
 
     pub fn dump(&self) -> String {

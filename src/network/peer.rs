@@ -10,7 +10,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{
     accept_async, connect_async, tungstenite::Message, WebSocketStream, MaybeTlsStream,
 };
-use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
+use futures_util::{SinkExt, StreamExt, stream::SplitSink};
 use uuid::Uuid;
 use anyhow::Result;
 use tracing::{info, warn, error, debug};
@@ -91,7 +91,7 @@ impl PeerConnection {
     async fn connection_task(
         peer_id: Uuid,
         connection: WebSocketConnection,
-        mut message_receiver: mpsc::UnboundedReceiver<P2PMessage>,
+        message_receiver: mpsc::UnboundedReceiver<P2PMessage>,
         message_handler: Arc<dyn Fn(Uuid, P2PMessage) + Send + Sync>,
     ) {
         debug!("Starting connection task for peer {}", peer_id);
@@ -208,19 +208,6 @@ impl PeerConnection {
         Ok(())
     }
     
-    /// Send a P2P message over WebSocket
-    async fn send_websocket_message(
-        ws_sender: &mut futures_util::stream::SplitSink<
-            WebSocketStream<impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin>,
-            Message,
-        >,
-        message: P2PMessage,
-    ) -> Result<()> {
-        let bytes = message.to_bytes()?;
-        let ws_message = Message::Text(String::from_utf8(bytes)?);
-        ws_sender.send(ws_message).await?;
-        Ok(())
-    }
 }
 
 /// WebSocket server for accepting incoming peer connections
@@ -333,7 +320,7 @@ mod tests {
         let message_count = Arc::new(AtomicUsize::new(0));
         let message_count_clone = Arc::clone(&message_count);
         
-        let handler = Arc::new(move |_peer_id: Uuid, _message: P2PMessage| {
+        let _handler = Arc::new(move |_peer_id: Uuid, _message: P2PMessage| {
             message_count_clone.fetch_add(1, Ordering::SeqCst);
         });
         

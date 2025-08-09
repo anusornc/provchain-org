@@ -110,7 +110,7 @@ impl NetworkManager {
     }
 
     /// Handle incoming message from a peer
-    async fn handle_incoming_message(&self, peer_id: Uuid, message: P2PMessage) -> Result<()> {
+    pub async fn handle_incoming_message(&self, peer_id: Uuid, message: P2PMessage) -> Result<()> {
         tracing::debug!("Received message from peer {}: {:?}", peer_id, message);
         
         for handler in &self.message_handlers {

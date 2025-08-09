@@ -29,6 +29,9 @@ pub struct NodeConfig {
     
     /// Logging configuration
     pub logging: LoggingConfig,
+    
+    /// Ontology configuration
+    pub ontology: Option<OntologyConfig>,
 }
 
 /// Network-related configuration
@@ -104,6 +107,22 @@ pub struct LoggingConfig {
     pub file: Option<String>,
 }
 
+/// Ontology configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OntologyConfig {
+    /// Path to the ontology file
+    pub path: String,
+    
+    /// Graph name for the ontology
+    pub graph_name: String,
+    
+    /// Whether to automatically load the ontology on startup
+    pub auto_load: bool,
+    
+    /// Whether to validate RDF data against the ontology
+    pub validate_data: bool,
+}
+
 impl Default for NodeConfig {
     fn default() -> Self {
         Self {
@@ -112,6 +131,7 @@ impl Default for NodeConfig {
             consensus: ConsensusConfig::default(),
             storage: StorageConfig::default(),
             logging: LoggingConfig::default(),
+            ontology: Some(OntologyConfig::default()),
         }
     }
 }
@@ -159,6 +179,17 @@ impl Default for LoggingConfig {
             level: "info".to_string(),
             format: "pretty".to_string(),
             file: None,
+        }
+    }
+}
+
+impl Default for OntologyConfig {
+    fn default() -> Self {
+        Self {
+            path: "ontology/traceability.owl.ttl".to_string(),
+            graph_name: "http://provchain.org/ontology".to_string(),
+            auto_load: true,
+            validate_data: false,
         }
     }
 }

@@ -51,7 +51,6 @@ impl RDFStore {
         }
     }
 
-    #[allow(dead_code)]
     pub fn load_ontology(&mut self, ontology_data: &str, _graph_name: &NamedNode) {
         let reader = Cursor::new(ontology_data.as_bytes());
         self.store
@@ -142,12 +141,6 @@ impl RDFStore {
         self.store.query(sparql).unwrap()
     }
 
-    #[allow(dead_code)]
-    pub fn dump_to_string(&self) -> String {
-        let mut buffer = Vec::new();
-        self.store.dump_to_writer(RdfFormat::NQuads, &mut buffer).unwrap();
-        String::from_utf8(buffer).unwrap()
-    }
 
     /// Hash a single triple using the canonicalization algorithm from Plan.md
     fn hash_triple(&self, triple: &Triple) -> String {
@@ -261,33 +254,130 @@ impl RDFStore {
         format!("{:x}", hasher.finalize())
     }
 
-    /// Canonicalize and hash all RDF data in the store
-    #[allow(dead_code)]
-    pub fn canonicalize_all(&self) -> String {
-        let mut all_graph_hashes = Vec::new();
 
-        // Get all named graphs
-        let mut graphs = HashSet::new();
-        for quad_result in self.store.iter() {
-            if let Ok(quad) = quad_result {
-                if let GraphName::NamedNode(graph) = &quad.graph_name {
-                    graphs.insert(graph.clone());
+    /// Validate RDF data in a graph against the loaded ontology
+    #[allow(dead_code)]
+    pub fn validate_against_ontology(&self, data_graph: &NamedNode) -> bool {
+        // Query to check if all entities have proper types from the ontology
+        let validation_query = r#"
+            PREFIX trace: <http://provchain.org/trace#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            
+            ASK {
+                GRAPH ?dataGraph {
+                    ?entity rdf:type ?type .
+                    FILTER(
+                        ?type = trace:ProductBatch || 
+                        ?type = trace:IngredientLot || 
+                        ?type = trace:ProcessingActivity || 
+                        ?type = trace:TransportActivity ||
+                        ?type = trace:QualityCheck ||
+                        ?type = trace:Farmer ||
+                        ?type = trace:Manufacturer ||
+                        ?type = trace:LogisticsProvider ||
+                        ?type = trace:Retailer ||
+                        ?type = trace:Customer ||
+                        ?type = trace:EnvironmentalCondition ||
+                        ?type = trace:Certificate
+                    )
+                }
+            }
+        "#;
+        
+        // Execute validation query with the specific graph
+        let query_with_graph = validation_query.replace("?dataGraph", &format!("<{}>", data_graph.as_str()));
+        
+        match self.query(&query_with_graph) {
+            QueryResults::Boolean(result) => result,
+            _ => false,
+        }
+    }
+
+    /// Check if required properties are present for ontology classes
+    #[allow(dead_code)]
+    pub fn validate_required_properties(&self, data_graph: &NamedNode) -> Vec<String> {
+        let mut validation_errors = Vec::new();
+
+        // Check ProductBatch has required properties
+        let batch_query = format!(r#"
+            PREFIX trace: <http://provchain.org/trace#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            
+            SELECT ?batch WHERE {{
+                GRAPH <{}> {{
+                    ?batch rdf:type trace:ProductBatch .
+                    FILTER NOT EXISTS {{ ?batch trace:hasBatchID ?id }}
+                }}
+            }}
+        "#, data_graph.as_str());
+
+        if let QueryResults::Solutions(solutions) = self.query(&batch_query) {
+            for solution in solutions {
+                if let Ok(sol) = solution {
+                    if let Some(batch) = sol.get("batch") {
+                        validation_errors.push(format!("ProductBatch {} missing required hasBatchID property", batch));
+                    }
                 }
             }
         }
 
-        // Hash each graph and collect the results
-        for graph in graphs {
-            let graph_hash = self.canonicalize_graph(&graph);
-            all_graph_hashes.push(format!("{}:{}", graph.as_str(), graph_hash));
+        // Check Activities have required timestamps
+        let activity_query = format!(r#"
+            PREFIX trace: <http://provchain.org/trace#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            
+            SELECT ?activity WHERE {{
+                GRAPH <{}> {{
+                    ?activity rdf:type ?type .
+                    FILTER(?type = trace:ProcessingActivity || ?type = trace:TransportActivity || ?type = trace:QualityCheck)
+                    FILTER NOT EXISTS {{ ?activity trace:recordedAt ?timestamp }}
+                }}
+            }}
+        "#, data_graph.as_str());
+
+        if let QueryResults::Solutions(solutions) = self.query(&activity_query) {
+            for solution in solutions {
+                if let Ok(sol) = solution {
+                    if let Some(activity) = sol.get("activity") {
+                        validation_errors.push(format!("Activity {} missing required recordedAt property", activity));
+                    }
+                }
+            }
         }
 
-        // Sort and combine all graph hashes
-        all_graph_hashes.sort();
-        let combined = all_graph_hashes.join("|");
-        
-        let mut hasher = Sha256::new();
-        hasher.update(combined.as_bytes());
-        format!("{:x}", hasher.finalize())
+        validation_errors
+    }
+
+    /// Get ontology class hierarchy information
+    #[allow(dead_code)]
+    pub fn get_ontology_classes(&self) -> Vec<String> {
+        let query = r#"
+            PREFIX trace: <http://provchain.org/trace#>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX owl: <http://www.w3.org/2002/07/owl#>
+            
+            SELECT DISTINCT ?class ?label WHERE {
+                ?class a owl:Class .
+                OPTIONAL { ?class rdfs:label ?label }
+                FILTER(STRSTARTS(STR(?class), "http://provchain.org/trace#"))
+            }
+            ORDER BY ?class
+        "#;
+
+        let mut classes = Vec::new();
+        if let QueryResults::Solutions(solutions) = self.query(query) {
+            for solution in solutions {
+                if let Ok(sol) = solution {
+                    if let Some(class) = sol.get("class") {
+                        let label = sol.get("label")
+                            .map(|l| l.to_string())
+                            .unwrap_or_else(|| class.to_string());
+                        classes.push(format!("{} ({})", class, label));
+                    }
+                }
+            }
+        }
+        classes
     }
 }
