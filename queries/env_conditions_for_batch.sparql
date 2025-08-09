@@ -1,0 +1,10 @@
+PREFIX ex: <http://example.org/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+
+SELECT ?milkBatch ?temperature ?humidity ?location
+WHERE {
+    ?milkBatch a ex:Milk ;
+               ex:temperature ?temperature ;
+               ex:humidity ?humidity ;
+               ex:location ?location .
+}

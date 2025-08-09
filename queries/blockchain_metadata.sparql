@@ -1,0 +1,14 @@
+PREFIX ex: <http://example.org/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+
+SELECT ?block ?index ?timestamp ?hash ?previousHash
+WHERE {
+    GRAPH <http://example.org/blockchain> {
+        ?block a ex:Block ;
+               ex:index ?index ;
+               ex:timestamp ?timestamp ;
+               ex:hash ?hash ;
+               ex:previous_hash ?previousHash .
+    }
+}
+ORDER BY ?index

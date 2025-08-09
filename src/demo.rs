@@ -1,13 +1,11 @@
 use crate::blockchain::Blockchain;
-use crate::rdf_store::RDFStore;
 use std::fs;
 
 pub fn run_demo() {
     let mut bc = Blockchain::new();
-    let mut rdf_store = RDFStore::new();
 
     // Farmer RDF
-    let farmer_data = r#"
+    let farmer_data = r#"///
         @prefix ex: <http://example.org/> .
         @prefix prov: <http://www.w3.org/ns/prov#> .
 
@@ -16,10 +14,9 @@ pub fn run_demo() {
             prov:generatedAtTime "2025-08-08T10:00:00Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
     "#;
     bc.add_block(farmer_data.into());
-    rdf_store.add_rdf(farmer_data);
 
     // Manufacturer RDF
-    let manufacturer_data = r#"
+    let manufacturer_data = r#"///
         @prefix ex: <http://example.org/> .
         @prefix prov: <http://www.w3.org/ns/prov#> .
 
@@ -29,9 +26,12 @@ pub fn run_demo() {
             prov:generatedAtTime "2025-08-08T12:00:00Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
     "#;
     bc.add_block(manufacturer_data.into());
-    rdf_store.add_rdf(manufacturer_data);
 
     println!("Blockchain valid? {}", bc.is_valid());
+    println!("\n--- Blockchain Dump ---");
+    println!("{}", bc.dump());
+    println!("\n--- Running Queries ---");
+
 
     // Run Step 4 queries if present in ./queries/
     let queries = vec![
@@ -45,7 +45,7 @@ pub fn run_demo() {
         let path = format!("queries/{}", qfile);
         if let Ok(qtext) = fs::read_to_string(&path) {
             println!("\n=== Running query: {} ===", qfile);
-            if let oxigraph::sparql::QueryResults::Solutions(solutions) = rdf_store.query(&qtext) {
+            if let oxigraph::sparql::QueryResults::Solutions(solutions) = bc.rdf_store.query(&qtext) {
                 for solution in solutions {
                     println!("{:?}", solution.unwrap());
                 }

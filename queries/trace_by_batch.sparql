@@ -1,0 +1,13 @@
+PREFIX ex: <http://example.org/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+
+SELECT ?milkBatch ?manufacturer ?manufactureTime
+WHERE {
+    ?milkBatch a ex:Milk ;
+               prov:generatedAtTime ?farmTime ;
+               prov:wasAttributedTo ?farmer .
+    ?product a ex:UHTMilk ;
+             prov:used ?milkBatch ;
+             prov:wasAttributedTo ?manufacturer ;
+             prov:generatedAtTime ?manufactureTime .
+}
