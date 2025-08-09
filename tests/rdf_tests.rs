@@ -1,7 +1,7 @@
-use uht_trace_blockchain::rdf_store::RDFStore;
+use provchain_org::rdf_store::RDFStore;
 use oxigraph::model::NamedNode;
 use oxigraph::sparql::QueryResults;
-use uht_trace_blockchain::blockchain::Block;
+use provchain_org::blockchain::Block;
 
 #[test]
 fn test_rdf_insertion_and_query_in_named_graph() {
@@ -37,11 +37,11 @@ fn test_block_metadata_storage_and_query() {
     let block = Block::new(1, "test data".into(), "some_hash".into());
     store.add_block_metadata(&block);
 
-    let query = r#"PREFIX tc: <http://tracechain.org/>
+    let query = r#"PREFIX pc: <http://provchain.org/>
         SELECT ?hash
-        FROM <http://tracechain.org/blockchain>
+        FROM <http://provchain.org/blockchain>
         WHERE {
-            <http://tracechain.org/block/1> tc:hasHash ?hash .
+            <http://provchain.org/block/1> pc:hasHash ?hash .
         }
     "#;
 

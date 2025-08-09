@@ -1,0 +1,75 @@
+@prefix pc: <http://provchain.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix trace: <http://example.org/trace#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+
+# Example traceability data using the ProvChain ontology
+# This demonstrates a complete milk supply chain trace
+
+# Farmer and milk batch
+trace:milkBatch001 a trace:ProductBatch ;
+    trace:hasBatchID "MB-2025-001" ;
+    trace:producedAt "2025-08-09T06:00:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo trace:FarmerSmith ;
+    trace:originLocation [
+        a geo:Point ;
+        geo:lat "13.7563" ;
+        geo:long "100.5018"
+    ] .
+
+trace:FarmerSmith a trace:Farmer ;
+    prov:label "Smith Dairy Farm" ;
+    trace:hasCertificate trace:OrganicCert001 .
+
+# Processing activity
+trace:uhtProcessing001 a trace:ProcessingActivity ;
+    prov:used trace:milkBatch001 ;
+    prov:wasAssociatedWith trace:UHTFactory ;
+    trace:recordedAt "2025-08-09T10:30:00Z"^^xsd:dateTime ;
+    trace:hasCondition trace:TempCondition001 .
+
+trace:UHTFactory a trace:Manufacturer ;
+    prov:label "Premium UHT Processing Co." .
+
+# Environmental conditions during processing
+trace:TempCondition001 a trace:EnvironmentalCondition ;
+    trace:hasTemperature "138.0"^^xsd:decimal ;
+    trace:hasHumidity "45.0"^^xsd:decimal ;
+    trace:hasConditionTimestamp "2025-08-09T10:30:00Z"^^xsd:dateTime ;
+    trace:environmentalSensor trace:TempSensor001 .
+
+# Final product
+trace:uhtMilkProduct001 a trace:ProductBatch ;
+    trace:hasBatchID "UHT-2025-001" ;
+    prov:wasGeneratedBy trace:uhtProcessing001 ;
+    trace:lotDerivedFrom trace:milkBatch001 ;
+    trace:producedAt "2025-08-09T11:00:00Z"^^xsd:dateTime .
+
+# Quality check
+trace:qualityCheck001 a trace:QualityCheck ;
+    prov:used trace:uhtMilkProduct001 ;
+    prov:wasAssociatedWith trace:QCInspector ;
+    trace:recordedAt "2025-08-09T11:15:00Z"^^xsd:dateTime .
+
+trace:QCInspector a trace:TraceAgent ;
+    prov:label "Quality Control Inspector" .
+
+# Transport activity
+trace:transport001 a trace:TransportActivity ;
+    prov:used trace:uhtMilkProduct001 ;
+    prov:wasAssociatedWith trace:LogisticsCorp ;
+    trace:recordedAt "2025-08-09T14:00:00Z"^^xsd:dateTime ;
+    trace:hasCondition trace:TransportCondition001 .
+
+trace:LogisticsCorp a trace:LogisticsProvider ;
+    prov:label "Cold Chain Logistics Ltd." .
+
+trace:TransportCondition001 a trace:EnvironmentalCondition ;
+    trace:hasTemperature "4.0"^^xsd:decimal ;
+    trace:hasHumidity "60.0"^^xsd:decimal ;
+    trace:hasConditionTimestamp "2025-08-09T14:00:00Z"^^xsd:dateTime .
+
+# Certificates
+trace:OrganicCert001 a trace:Certificate ;
+    prov:label "Organic Certification 2025" .

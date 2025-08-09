@@ -1,0 +1,85 @@
+# ProvChainOrg Node Configuration
+# This file contains the configuration for a ProvChainOrg distributed node
+
+# Unique identifier for this node (auto-generated)
+node_id = "00000000-0000-0000-0000-000000000000"
+
+[network]
+# Network identifier - must match across all nodes in the same network
+network_id = "provchain-org-default"
+
+# Port to listen for incoming peer connections
+listen_port = 8080
+
+# Address to bind to (0.0.0.0 for all interfaces)
+bind_address = "0.0.0.0"
+
+# List of bootstrap peers to connect to on startup
+# Format: ["address:port", "address:port"]
+known_peers = []
+
+# Maximum number of peer connections
+max_peers = 50
+
+# Connection timeout in seconds
+connection_timeout = 30
+
+# Ping interval for connection health checks (seconds)
+ping_interval = 30
+
+[consensus]
+# Whether this node is an authority (can create blocks)
+is_authority = false
+
+# Authority private key file path (required if is_authority = true)
+# authority_key_file = "authority.key"
+
+# List of known authority public keys
+authority_keys = []
+
+# Block creation interval for authorities (seconds)
+block_interval = 10
+
+# Maximum block size in bytes (1MB default)
+max_block_size = 1048576
+
+[storage]
+# Data directory for persistent storage
+data_dir = "./data"
+
+# Whether to use persistent storage (vs in-memory)
+persistent = true
+
+# RDF store type (currently only "oxigraph" supported)
+store_type = "oxigraph"
+
+# Maximum cache size in MB
+cache_size_mb = 100
+
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+
+# Log output format: json, pretty
+format = "pretty"
+
+# Log file path (optional, logs to stdout if not specified)
+# file = "graphchain.log"
+
+# Example configurations for different node types:
+
+# Authority Node Example:
+# [consensus]
+# is_authority = true
+# authority_key_file = "authority.key"
+# authority_keys = ["public_key_1", "public_key_2"]
+
+# Bootstrap Node Example:
+# [network]
+# listen_port = 8080
+# known_peers = []  # Empty for bootstrap nodes
+
+# Regular Node Example:
+# [network]
+# listen_port = 8081
+# known_peers = ["127.0.0.1:8080"]  # Connect to bootstrap node

@@ -1,5 +1,5 @@
-use uht_trace_blockchain::blockchain::Blockchain;
-use uht_trace_blockchain::rdf_store::RDFStore;
+use provchain_org::blockchain::Blockchain;
+use provchain_org::rdf_store::RDFStore;
 use oxigraph::model::NamedNode;
 
 #[test]
@@ -58,11 +58,11 @@ fn test_blockchain_with_rdf_canonicalization() {
     assert!(bc.is_valid(), "Blockchain should be valid after adding simple RDF block");
     
     // Test RDF canonicalization directly by comparing canonical hashes
-    let graph_name1 = oxigraph::model::NamedNode::new("http://tracechain.org/block/1").unwrap();
+    let graph_name1 = oxigraph::model::NamedNode::new("http://provchain.org/block/1").unwrap();
     let canonical_hash1 = bc.rdf_store.canonicalize_graph(&graph_name1);
     
     // Create another RDF store with the same data
-    let mut rdf_store2 = uht_trace_blockchain::rdf_store::RDFStore::new();
+    let mut rdf_store2 = provchain_org::rdf_store::RDFStore::new();
     let graph_name2 = oxigraph::model::NamedNode::new("http://example.org/test").unwrap();
     rdf_store2.add_rdf_to_graph(simple_rdf_data, &graph_name2);
     let canonical_hash2 = rdf_store2.canonicalize_graph(&graph_name2);
@@ -72,12 +72,12 @@ fn test_blockchain_with_rdf_canonicalization() {
         "Canonical hashes should be identical for identical RDF content");
     
     // Test with blank nodes - create two RDF stores with semantically equivalent data
-    let mut rdf_store3 = uht_trace_blockchain::rdf_store::RDFStore::new();
+    let mut rdf_store3 = provchain_org::rdf_store::RDFStore::new();
     let rdf_data1 = r#"@prefix ex: <http://example.org/> . _:b1 ex:name "Alice" . _:b1 ex:age 30 ."#;
     let graph_name3 = oxigraph::model::NamedNode::new("http://example.org/test3").unwrap();
     rdf_store3.add_rdf_to_graph(rdf_data1, &graph_name3);
     
-    let mut rdf_store4 = uht_trace_blockchain::rdf_store::RDFStore::new();
+    let mut rdf_store4 = provchain_org::rdf_store::RDFStore::new();
     let rdf_data2 = r#"@prefix ex: <http://example.org/> . _:x ex:name "Alice" . _:x ex:age 30 ."#;
     let graph_name4 = oxigraph::model::NamedNode::new("http://example.org/test4").unwrap();
     rdf_store4.add_rdf_to_graph(rdf_data2, &graph_name4);

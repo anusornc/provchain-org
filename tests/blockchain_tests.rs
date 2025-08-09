@@ -1,4 +1,4 @@
-use uht_trace_blockchain::blockchain::Blockchain;
+use provchain_org::blockchain::Blockchain;
 
 #[test]
 fn test_blockchain_add_and_validate() {
