@@ -68,6 +68,20 @@ lazy_static = "1.4"        # Static initialization
 # Performance & Scalability dependencies for Phase 5
 num_cpus = "1.0"           # CPU core detection for thread pool sizing
 
+# Production Deployment dependencies for Phase 6
+prometheus = "0.13"        # Metrics collection
+sysinfo = "0.30"          # System information
+env_logger = "0.10"       # Environment-based logging
+log = "0.4"               # Logging facade
+opentelemetry = "0.21"    # Distributed tracing
+opentelemetry-jaeger = "0.20"  # Jaeger tracing backend
+metrics = "0.22"          # Metrics collection framework
+metrics-exporter-prometheus = "0.13"  # Prometheus metrics exporter
+serde_yaml = "0.9"        # YAML configuration support
+dirs = "5.0"              # Standard directories
+thiserror = "1.0"         # Error handling
+async-trait = "0.1"       # Async traits
+
 [dev-dependencies]
 tempfile = "3.8"
 reqwest = { version = "0.11", features = ["json"] }
