@@ -7,7 +7,6 @@ use provchain_org::blockchain::Blockchain;
 use provchain_org::rdf_store::RDFStore;
 use oxigraph::model::NamedNode;
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -185,7 +184,7 @@ impl LoadTestNode {
                 metrics.average_block_time = total_block_time / blocks_processed;
             }
 
-            println!("Node {}: Block producer completed", node_id);
+            println!("Node {node_id}: Block producer completed");
         })
     }
 
@@ -271,7 +270,7 @@ impl LoadTestNode {
                 }
             }
 
-            println!("Node {}: Query executor completed ({} queries)", node_id, queries_executed);
+            println!("Node {node_id}: Query executor completed ({queries_executed} queries)");
         })
     }
 }
@@ -362,7 +361,7 @@ fn load_test_extended_duration() {
 }
 
 fn run_load_test(config: &LoadTestConfig) -> LoadTestResults {
-    println!("Starting load test with config: {:?}", config);
+    println!("Starting load test with config: {config:?}");
     
     let start_time = Instant::now();
     let mut nodes = Vec::new();
@@ -460,7 +459,7 @@ fn stress_test_blockchain_validation() {
     }
     
     let average_validation_time = total_validation_time / validation_times;
-    println!("Average validation time for 1000 blocks: {:?}", average_validation_time);
+    println!("Average validation time for 1000 blocks: {average_validation_time:?}");
     
     // Validation should complete within reasonable time even for large chains
     assert!(average_validation_time < Duration::from_secs(30), "Validation should complete within 30 seconds");
@@ -476,7 +475,7 @@ fn stress_test_rdf_canonicalization() {
     // Test canonicalization with increasingly complex graphs
     for complexity in (10..=200).step_by(20) {
         let rdf_data = generate_load_test_rdf(complexity as u64, complexity);
-        let graph_name = NamedNode::new(&format!("http://example.org/stress_{}", complexity)).unwrap();
+        let graph_name = NamedNode::new(format!("http://example.org/stress_{complexity}")).unwrap();
         
         rdf_store.add_rdf_to_graph(&rdf_data, &graph_name);
         
@@ -485,7 +484,7 @@ fn stress_test_rdf_canonicalization() {
         let canonicalization_time = start.elapsed();
         
         canonicalization_times.push((complexity, canonicalization_time));
-        println!("Complexity {}: {:?}", complexity, canonicalization_time);
+        println!("Complexity {complexity}: {canonicalization_time:?}");
     }
     
     // Verify that canonicalization time doesn't grow exponentially
@@ -493,7 +492,7 @@ fn stress_test_rdf_canonicalization() {
     let last_time = canonicalization_times.last().unwrap().1;
     let growth_ratio = last_time.as_secs_f64() / first_time.as_secs_f64();
     
-    println!("Canonicalization time growth ratio: {:.2}x", growth_ratio);
+    println!("Canonicalization time growth ratio: {growth_ratio:.2}x");
     assert!(growth_ratio < 100.0, "Canonicalization time should not grow exponentially");
 }
 
@@ -521,11 +520,9 @@ fn stress_test_concurrent_sparql_queries() {
     for thread_id in 0..num_threads {
         let bc_clone = Arc::clone(&bc);
         let handle = thread::spawn(move || {
-            let queries = vec![
-                r#"PREFIX trace: <http://provchain.org/trace#> SELECT (COUNT(?batch) as ?count) WHERE { ?batch a trace:ProductBatch . }"#,
+            let queries = [r#"PREFIX trace: <http://provchain.org/trace#> SELECT (COUNT(?batch) as ?count) WHERE { ?batch a trace:ProductBatch . }"#,
                 r#"PREFIX trace: <http://provchain.org/trace#> SELECT ?farmer WHERE { ?farmer a trace:Farmer . } LIMIT 10"#,
-                r#"PREFIX trace: <http://provchain.org/trace#> SELECT (AVG(?temp) as ?avg_temp) WHERE { ?condition trace:hasTemperature ?temp . }"#,
-            ];
+                r#"PREFIX trace: <http://provchain.org/trace#> SELECT (AVG(?temp) as ?avg_temp) WHERE { ?condition trace:hasTemperature ?temp . }"#];
             
             for i in 0..queries_per_thread {
                 let query = &queries[i % queries.len()];
@@ -537,7 +534,7 @@ fn stress_test_concurrent_sparql_queries() {
                 }
             }
             
-            println!("Thread {} completed all {} queries", thread_id, queries_per_thread);
+            println!("Thread {thread_id} completed all {queries_per_thread} queries");
         });
         handles.push(handle);
     }
@@ -552,9 +549,9 @@ fn stress_test_concurrent_sparql_queries() {
     let queries_per_second = total_queries as f64 / total_duration.as_secs_f64();
     
     println!("Concurrent SPARQL stress test completed:");
-    println!("Total queries: {}", total_queries);
-    println!("Total duration: {:?}", total_duration);
-    println!("Queries per second: {:.2}", queries_per_second);
+    println!("Total queries: {total_queries}");
+    println!("Total duration: {total_duration:?}");
+    println!("Queries per second: {queries_per_second:.2}");
     
     // Should handle concurrent queries efficiently
     assert!(queries_per_second > 50.0, "Should handle at least 50 queries per second under stress");

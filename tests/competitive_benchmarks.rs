@@ -143,7 +143,7 @@ fn benchmark_provchain(num_records: u32) -> BenchmarkResults {
             ?batch a trace:ProductBatch .
         }
     "#);
-    let query_time = query_start.elapsed();
+    let _query_time = query_start.elapsed();
     
     // Estimate memory usage
     let estimated_memory = bc.chain.len() * 2048 / 1024 / 1024; // Rough estimate in MB
@@ -189,7 +189,7 @@ fn benchmark_simple_blockchain(num_records: u32) -> BenchmarkResults {
     // Simple blockchain has very limited query capabilities
     let query_start = Instant::now();
     let _count = chain.len(); // Can only count records, no complex queries
-    let query_time = query_start.elapsed();
+    let _query_time = query_start.elapsed();
     
     let estimated_memory = chain.len() * 512 / 1024 / 1024; // Much smaller per record
     
@@ -231,7 +231,7 @@ fn benchmark_traditional_database(num_records: u32) -> BenchmarkResults {
     // Simulate SQL query
     let query_start = Instant::now();
     let _count = records.len(); // Simple count query
-    let query_time = query_start.elapsed();
+    let _query_time = query_start.elapsed();
     
     let estimated_memory = records.len() * 256 / 1024 / 1024; // Efficient storage
     
@@ -265,7 +265,7 @@ fn benchmark_semantic_database(num_records: u32) -> BenchmarkResults {
     
     let start = Instant::now();
     for (i, rdf_data) in data.iter().enumerate() {
-        let graph_name = NamedNode::new(&format!("http://example.org/graph_{}", i)).unwrap();
+        let graph_name = NamedNode::new(format!("http://example.org/graph_{i}")).unwrap();
         rdf_store.add_rdf_to_graph(rdf_data, &graph_name);
     }
     let total_time = start.elapsed();
@@ -278,7 +278,7 @@ fn benchmark_semantic_database(num_records: u32) -> BenchmarkResults {
             ?batch a trace:ProductBatch .
         }
     "#);
-    let query_time = query_start.elapsed();
+    let _query_time = query_start.elapsed();
     
     let estimated_memory = num_records as usize * 1024 / 1024; // Moderate efficiency
     
@@ -372,7 +372,7 @@ fn benchmark_scaling_comparison() {
     let mut results = HashMap::new();
     
     for &size in &test_sizes {
-        println!("Testing with {} records...", size);
+        println!("Testing with {size} records...");
         
         let provchain = benchmark_provchain(size);
         let simple_blockchain = benchmark_simple_blockchain(size);
@@ -385,7 +385,7 @@ fn benchmark_scaling_comparison() {
     // Print scaling analysis
     println!("\n=== Scaling Analysis ===");
     for &size in &test_sizes {
-        println!("Records: {}", size);
+        println!("Records: {size}");
         for result in &results[&size] {
             println!("  {}: {:.2} ops/sec, {:?} avg time", 
                      result.system_name, 
@@ -400,7 +400,7 @@ fn benchmark_scaling_comparison() {
     let provchain_1000 = &results[&1000][0];
     
     let throughput_degradation = provchain_100.throughput_ops_per_sec / provchain_1000.throughput_ops_per_sec;
-    println!("ProvChain throughput degradation (100 vs 1000 records): {:.2}x", throughput_degradation);
+    println!("ProvChain throughput degradation (100 vs 1000 records): {throughput_degradation:.2}x");
     
     // Should not degrade more than 10x when scaling 10x data
     assert!(throughput_degradation < 10.0, "ProvChain should scale reasonably");
@@ -469,11 +469,11 @@ fn benchmark_query_complexity_comparison() {
         let start = Instant::now();
         let _results = bc.rdf_store.query(query);
         let duration = start.elapsed();
-        println!("  {}: {:?}", description, duration);
+        println!("  {description}: {duration:?}");
         
         // All queries should complete within reasonable time
         assert!(duration < Duration::from_millis(500), 
-                "Query '{}' should complete within 500ms", description);
+                "Query '{description}' should complete within 500ms");
     }
     
     println!("\nTraditional Database Equivalent Capabilities:");
@@ -529,7 +529,7 @@ fn benchmark_semantic_standards_compliance() {
     ];
     
     for (system, standards) in &standards_comparison {
-        println!("{} Standards Compliance:", system);
+        println!("{system} Standards Compliance:");
         let supported_count = standards.iter().filter(|(_, supported)| *supported).count();
         let total_count = standards.len();
         
@@ -538,8 +538,7 @@ fn benchmark_semantic_standards_compliance() {
         }
         
         let compliance_percentage = (supported_count as f64 / total_count as f64) * 100.0;
-        println!("  Overall compliance: {:.1}% ({}/{})\n", 
-                 compliance_percentage, supported_count, total_count);
+        println!("  Overall compliance: {compliance_percentage:.1}% ({supported_count}/{total_count})\n");
     }
     
     // ProvChain should have the highest standards compliance
@@ -589,9 +588,9 @@ fn benchmark_supply_chain_use_case_comparison() {
     ];
     
     for (use_case, systems) in &use_cases {
-        println!("{} Scores (0-10):", use_case);
+        println!("{use_case} Scores (0-10):");
         for (system, score, description) in systems {
-            println!("  {}: {} - {}", system, score, description);
+            println!("  {system}: {score} - {description}");
         }
         println!();
     }
@@ -609,7 +608,7 @@ fn benchmark_supply_chain_use_case_comparison() {
     sorted_scores.sort_by(|a, b| b.1.cmp(a.1));
     
     for (system, score) in sorted_scores {
-        println!("  {}: {}/50", system, score);
+        println!("  {system}: {score}/50");
     }
     
     // ProvChain should have the highest overall score

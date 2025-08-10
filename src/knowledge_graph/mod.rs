@@ -7,8 +7,6 @@ pub mod builder;
 pub mod entity_linking;
 pub mod graph_db;
 
-use crate::rdf_store::RDFStore;
-use oxigraph::model::*;
 use petgraph::Graph;
 use std::collections::HashMap;
 use anyhow::Result;

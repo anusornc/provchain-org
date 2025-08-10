@@ -42,7 +42,7 @@ fn test_blockchain_with_complete_supply_chain_data() {
     
     if let oxigraph::sparql::QueryResults::Solutions(solutions) = blockchain.rdf_store.query(query) {
         let results: Vec<_> = solutions.collect();
-        assert!(results.len() >= 1, "Should find product batches in the blockchain");
+        assert!(!results.is_empty(), "Should find product batches in the blockchain");
     } else {
         panic!("SPARQL query failed");
     }
@@ -93,7 +93,7 @@ fn test_blockchain_with_both_test_files() {
     
     if let oxigraph::sparql::QueryResults::Solutions(solutions) = blockchain.rdf_store.query(query2) {
         let results: Vec<_> = solutions.collect();
-        assert!(results.len() >= 1, "Should find product batches in block 2");
+        assert!(!results.is_empty(), "Should find product batches in block 2");
     } else {
         panic!("SPARQL query for block 2 failed");
     }

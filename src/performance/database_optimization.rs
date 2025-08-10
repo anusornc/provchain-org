@@ -13,7 +13,7 @@ struct QueryCacheEntry {
     /// Cached query results
     results: String,
     /// When this entry was created
-    created_at: Instant,
+    _created_at: Instant,
     /// How many times this entry has been accessed
     access_count: u64,
     /// Last access time
@@ -27,7 +27,7 @@ impl QueryCacheEntry {
         let now = Instant::now();
         Self {
             results,
-            created_at: now,
+            _created_at: now,
             access_count: 1,
             last_accessed: now,
             execution_time,
@@ -260,7 +260,7 @@ impl QueryCacheStats {
 /// SPARQL query optimizer
 pub struct QueryOptimizer {
     /// Common query patterns and their optimized versions
-    optimization_rules: HashMap<String, String>,
+    _optimization_rules: HashMap<String, String>,
 }
 
 impl QueryOptimizer {
@@ -285,7 +285,7 @@ impl QueryOptimizer {
         );
 
         Self {
-            optimization_rules,
+            _optimization_rules: optimization_rules,
         }
     }
 
@@ -307,6 +307,9 @@ impl QueryOptimizer {
             .lines()
             .map(|line| line.trim())
             .filter(|line| !line.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ")
+            .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ")
     }
@@ -433,7 +436,7 @@ mod tests {
         
         // Test cache miss and insertion
         let result1 = cache.get_or_execute("SELECT * WHERE { ?s ?p ?o }", |query| {
-            (format!("results for {}", query), Duration::from_millis(100))
+            (format!("results for {query}"), Duration::from_millis(100))
         });
         assert!(result1.contains("SELECT * WHERE"));
         assert_eq!(cache.size(), 1);
@@ -441,7 +444,7 @@ mod tests {
         
         // Test cache hit
         let result2 = cache.get_or_execute("SELECT * WHERE { ?s ?p ?o }", |query| {
-            (format!("results for {}", query), Duration::from_millis(100))
+            (format!("results for {query}"), Duration::from_millis(100))
         });
         assert_eq!(result1, result2);
         assert_eq!(cache.size(), 1);
@@ -450,7 +453,7 @@ mod tests {
 
     #[test]
     fn test_query_cache_normalization() {
-        let mut cache = QueryCache::new(5);
+        let cache = QueryCache::new(5);
         
         // These queries should be treated as the same after normalization
         let query1 = "SELECT * WHERE { ?s ?p ?o }";
@@ -470,12 +473,12 @@ mod tests {
         let mut cache = QueryCache::new(2);
         
         // Fill cache to capacity
-        cache.get_or_execute("query1", |q| (format!("result_{}", q), Duration::from_millis(10)));
-        cache.get_or_execute("query2", |q| (format!("result_{}", q), Duration::from_millis(10)));
+        cache.get_or_execute("query1", |q| (format!("result_{q}"), Duration::from_millis(10)));
+        cache.get_or_execute("query2", |q| (format!("result_{q}"), Duration::from_millis(10)));
         assert_eq!(cache.size(), 2);
         
         // Add third query, should evict first
-        cache.get_or_execute("query3", |q| (format!("result_{}", q), Duration::from_millis(10)));
+        cache.get_or_execute("query3", |q| (format!("result_{q}"), Duration::from_millis(10)));
         assert_eq!(cache.size(), 2);
         
         let stats = cache.get_stats();
@@ -524,9 +527,9 @@ mod tests {
         
         // Add some cached queries
         cache.get_or_execute("SELECT ?s WHERE { ?s <http://example.org/name> ?name }", 
-                           |q| (format!("result_{}", q), Duration::from_millis(10)));
+                           |q| (format!("result_{q}"), Duration::from_millis(10)));
         cache.get_or_execute("SELECT ?s WHERE { ?s <http://example.org/age> ?age }", 
-                           |q| (format!("result_{}", q), Duration::from_millis(10)));
+                           |q| (format!("result_{q}"), Duration::from_millis(10)));
         
         assert_eq!(cache.size(), 2);
         
@@ -544,7 +547,7 @@ mod tests {
         let initial_memory = cache.estimate_memory_usage();
         
         cache.get_or_execute("query1", |q| (format!("large_result_{}", q.repeat(100)), Duration::from_millis(10)));
-        cache.get_or_execute("query2", |q| (format!("small_result_{}", q), Duration::from_millis(10)));
+        cache.get_or_execute("query2", |q| (format!("small_result_{q}"), Duration::from_millis(10)));
         
         let memory_with_entries = cache.estimate_memory_usage();
         assert!(memory_with_entries > initial_memory);
@@ -555,13 +558,13 @@ mod tests {
         let mut cache = QueryCache::new(5);
         
         // Add queries with different access patterns
-        cache.get_or_execute("query1", |q| (format!("result_{}", q), Duration::from_millis(10)));
-        cache.get_or_execute("query2", |q| (format!("result_{}", q), Duration::from_millis(20)));
-        cache.get_or_execute("query3", |q| (format!("result_{}", q), Duration::from_millis(30)));
+        cache.get_or_execute("query1", |q| (format!("result_{q}"), Duration::from_millis(10)));
+        cache.get_or_execute("query2", |q| (format!("result_{q}"), Duration::from_millis(20)));
+        cache.get_or_execute("query3", |q| (format!("result_{q}"), Duration::from_millis(30)));
         
         // Access query1 multiple times
-        cache.get_or_execute("query1", |q| (format!("result_{}", q), Duration::from_millis(10)));
-        cache.get_or_execute("query1", |q| (format!("result_{}", q), Duration::from_millis(10)));
+        cache.get_or_execute("query1", |q| (format!("result_{q}"), Duration::from_millis(10)));
+        cache.get_or_execute("query1", |q| (format!("result_{q}"), Duration::from_millis(10)));
         
         let most_accessed = cache.get_most_accessed_queries(2);
         assert_eq!(most_accessed.len(), 2);

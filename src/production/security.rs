@@ -204,7 +204,7 @@ impl SecurityManager {
         let log_path = PathBuf::from(&self.config.audit_log_path);
         if let Some(parent) = log_path.parent() {
             tokio::fs::create_dir_all(parent).await
-                .map_err(|e| ProductionError::Security(format!("Failed to create audit log directory: {}", e)))?;
+                .map_err(|e| ProductionError::Security(format!("Failed to create audit log directory: {e}")))?;
         }
 
         tracing::info!("Audit logging initialized: {}", self.config.audit_log_path);
@@ -238,7 +238,7 @@ impl SecurityManager {
         // Write to audit log file if enabled
         if self.config.audit_logging_enabled {
             let log_entry = serde_json::to_string(&event)
-                .map_err(|e| ProductionError::Security(format!("Failed to serialize audit event: {}", e)))?;
+                .map_err(|e| ProductionError::Security(format!("Failed to serialize audit event: {e}")))?;
             
             // In a real implementation, we would write to the actual log file
             tracing::info!("Audit event: {}", log_entry);
@@ -459,11 +459,11 @@ Generated: {}
             if self.config.rate_limiting_enabled { "Yes" } else { "No" },
             if self.config.audit_logging_enabled { "Yes" } else { "No" },
             event_counts.iter()
-                .map(|(k, v)| format!("- {}: {}", k, v))
+                .map(|(k, v)| format!("- {k}: {v}"))
                 .collect::<Vec<_>>()
                 .join("\n"),
             result_counts.iter()
-                .map(|(k, v)| format!("- {}: {}", k, v))
+                .map(|(k, v)| format!("- {k}: {v}"))
                 .collect::<Vec<_>>()
                 .join("\n"),
             self.config.security_policies.iter()
@@ -482,7 +482,7 @@ Generated: {}
         tracing::info!("Shutting down security systems");
         
         // Generate final security report
-        let report = self.generate_security_report().await;
+        let _report = self.generate_security_report().await;
         tracing::info!("Final security report generated");
         
         Ok(())
@@ -500,7 +500,7 @@ impl SecurityMiddleware {
     }
 
     /// Validate request headers
-    pub fn validate_request_headers(&self, headers: &HashMap<String, String>) -> Result<(), ProductionError> {
+    pub fn validate_request_headers(&self, _headers: &HashMap<String, String>) -> Result<(), ProductionError> {
         // Check for required security headers
         if self.config.security_headers_enabled {
             // In a real implementation, we would validate security headers

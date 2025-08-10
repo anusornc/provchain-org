@@ -1,8 +1,7 @@
 use clap::{Parser, Subcommand};
 use provchain_org::{blockchain::Blockchain, rdf_store::RDFStore, demo, web::server::create_web_server};
 use std::fs;
-use tracing::{info, error};
-use tracing_subscriber;
+use tracing::info;
 
 #[derive(Parser)]
 #[command(name = "TraceChain")]
@@ -44,26 +43,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cli = Cli::parse();
     let mut blockchain = Blockchain::new();
-    let rdf_store = RDFStore::new();
+    let _rdf_store = RDFStore::new();
 
     match cli.command {
         Commands::AddFile { path } => {
             let rdf_data = fs::read_to_string(&path)
-                .map_err(|e| format!("Cannot read RDF file '{}': {}", path, e))?;
+                .map_err(|e| format!("Cannot read RDF file '{path}': {e}"))?;
             
             blockchain.add_block(rdf_data);
             let block_hash = blockchain.chain.last()
                 .map(|b| b.hash.clone())
                 .unwrap_or_else(|| "unknown".to_string());
             
-            println!("Added RDF as a new block with hash: {}", block_hash);
+            println!("Added RDF as a new block with hash: {block_hash}");
             println!("Blockchain is valid: {}", blockchain.is_valid());
         }
         Commands::Query { path } => {
             let query = fs::read_to_string(&path)
-                .map_err(|e| format!("Cannot read query file '{}': {}", path, e))?;
+                .map_err(|e| format!("Cannot read query file '{path}': {e}"))?;
             
-            let results = blockchain.rdf_store.query(&query);
+            let _results = blockchain.rdf_store.query(&query);
             println!("Query results:");
             // For now, just print that query was executed
             println!("Query executed successfully");
@@ -77,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Dump => {
             let json = blockchain.dump();
-            println!("{}", json);
+            println!("{json}");
         }
         Commands::Demo => {
             info!("Running built-in demo...");

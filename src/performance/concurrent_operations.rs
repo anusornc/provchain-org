@@ -36,7 +36,7 @@ pub enum Task {
 
 /// Worker thread for processing tasks
 struct Worker {
-    id: usize,
+    _id: usize,
     thread: Option<thread::JoinHandle<()>>,
 }
 
@@ -50,7 +50,7 @@ impl Worker {
                 };
 
                 match task {
-                    Ok(Task::Canonicalization { id, rdf_content, result_sender }) => {
+                    Ok(Task::Canonicalization { id, rdf_content: _, result_sender }) => {
                         // Simulate RDF canonicalization work
                         let start = Instant::now();
                         thread::sleep(Duration::from_millis(10)); // Simulate work
@@ -59,14 +59,14 @@ impl Worker {
                     }
                     Ok(Task::QueryExecution { id, query, result_sender }) => {
                         // Simulate SPARQL query execution
-                        let start = Instant::now();
+                        let _start = Instant::now();
                         thread::sleep(Duration::from_millis(20)); // Simulate work
                         let results = format!("query_results_{}_{}", id, query.len());
                         let _ = result_sender.send((id, results));
                     }
                     Ok(Task::BlockValidation { id, block_data, result_sender }) => {
                         // Simulate block validation
-                        let start = Instant::now();
+                        let _start = Instant::now();
                         thread::sleep(Duration::from_millis(5)); // Simulate work
                         let is_valid = block_data.len() > 10; // Simple validation
                         let _ = result_sender.send((id, is_valid));
@@ -83,7 +83,7 @@ impl Worker {
         });
 
         Worker {
-            id,
+            _id: id,
             thread: Some(thread),
         }
     }
@@ -304,7 +304,7 @@ impl ConcurrentManager {
         
         // Generate test data
         let test_rdf: Vec<String> = (0..num_tasks)
-            .map(|i| format!("@prefix ex: <http://example.org/> . ex:test{} ex:value {} .", i, i))
+            .map(|i| format!("@prefix ex: <http://example.org/> . ex:test{i} ex:value {i} ."))
             .collect();
 
         // Test canonicalization performance
@@ -315,7 +315,7 @@ impl ConcurrentManager {
         // Test query performance
         let query_start = Instant::now();
         let test_queries: Vec<String> = (0..num_tasks)
-            .map(|i| format!("SELECT ?s WHERE {{ ?s ex:value {} }}", i))
+            .map(|i| format!("SELECT ?s WHERE {{ ?s ex:value {i} }}"))
             .collect();
         let _query_results = self.execute_queries_concurrent(test_queries);
         let query_duration = query_start.elapsed();
@@ -331,8 +331,8 @@ impl ConcurrentManager {
             num_tasks,
             num_workers: self.workers.len(),
             canonicalization_duration: canon_duration,
-            query_duration: query_duration,
-            validation_duration: validation_duration,
+            query_duration,
+            validation_duration,
             total_duration,
             canonicalization_throughput: num_tasks as f64 / canon_duration.as_secs_f64(),
             query_throughput: num_tasks as f64 / query_duration.as_secs_f64(),
@@ -524,9 +524,9 @@ mod tests {
         let results = manager.validate_blocks_concurrent(block_data);
         
         assert_eq!(results.len(), 3);
-        assert_eq!(results[0], true);  // Valid
-        assert_eq!(results[1], false); // Invalid (too short)
-        assert_eq!(results[2], true);  // Valid
+        assert!(results[0]);  // Valid
+        assert!(!results[1]); // Invalid (too short)
+        assert!(results[2]);  // Valid
     }
 
     #[test]

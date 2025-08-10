@@ -290,7 +290,7 @@ impl PeerClient {
         peer_address: &str,
         message_handler: Arc<dyn Fn(Uuid, P2PMessage) + Send + Sync>,
     ) -> Result<PeerConnection> {
-        let url = format!("ws://{}", peer_address);
+        let url = format!("ws://{peer_address}");
         info!("Connecting to peer at {}", url);
         
         let (ws_stream, _) = connect_async(&url).await?;

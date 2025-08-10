@@ -27,7 +27,7 @@ fn test_blockchain_with_simple_supply_chain_data() {
     
     if let oxigraph::sparql::QueryResults::Solutions(solutions) = blockchain.rdf_store.query(query) {
         let results: Vec<_> = solutions.collect();
-        assert!(results.len() >= 1, "Should find product batches in the blockchain");
+        assert!(!results.is_empty(), "Should find product batches in the blockchain");
         
         // Check if we can find the specific milk batch
         let mut found_milk_batch = false;

@@ -4,9 +4,8 @@
 //! and analytics capabilities for the knowledge graph.
 
 use super::{KnowledgeEntity, KnowledgeRelationship, KnowledgeGraph};
-use petgraph::Graph;
 use petgraph::algo::{dijkstra, connected_components, is_cyclic_directed};
-use petgraph::graph::{NodeIndex, EdgeIndex};
+use petgraph::graph::NodeIndex;
 use std::collections::{HashMap, HashSet};
 use anyhow::Result;
 use ndarray::Array2;
@@ -39,7 +38,7 @@ impl GraphDatabase {
         for (uri, entity) in &self.knowledge_graph.entities {
             self.indexes.entity_type_index
                 .entry(entity.entity_type.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(uri.clone());
         }
 
@@ -48,9 +47,9 @@ impl GraphDatabase {
             for (property, value) in &entity.properties {
                 self.indexes.property_index
                     .entry(property.clone())
-                    .or_insert_with(HashMap::new)
+                    .or_default()
                     .entry(value.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(uri.clone());
             }
         }
@@ -59,7 +58,7 @@ impl GraphDatabase {
         for relationship in &self.knowledge_graph.relationships {
             self.indexes.relationship_index
                 .entry(relationship.predicate.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push((relationship.subject.clone(), relationship.object.clone()));
         }
     }
@@ -196,7 +195,7 @@ impl GraphDatabase {
         let mut communities = vec![Vec::new(); components];
 
         for (uri, &node_idx) in &self.knowledge_graph.entity_index {
-            if let Some(component_id) = self.knowledge_graph.graph.node_weight(node_idx) {
+            if let Some(_component_id) = self.knowledge_graph.graph.node_weight(node_idx) {
                 // Find which component this node belongs to
                 let mut component_idx = 0;
                 let mut current_count = 0;
@@ -229,7 +228,7 @@ impl GraphDatabase {
         let mut embeddings = Array2::zeros((num_nodes, dimensions));
 
         // Simple random walk-based embedding generation
-        for (i, (uri, &node_idx)) in self.knowledge_graph.entity_index.iter().enumerate() {
+        for (i, (_uri, &node_idx)) in self.knowledge_graph.entity_index.iter().enumerate() {
             let walks = self.generate_random_walks(node_idx, 10, 80); // 10 walks of length 80
             let embedding = self.compute_embedding_from_walks(&walks, dimensions);
             
@@ -330,7 +329,7 @@ impl GraphDatabase {
                 .filter(|entity| {
                     if let Some(filters) = filters {
                         filters.iter().all(|(key, value)| {
-                            entity.properties.get(key).map_or(false, |v| v == value)
+                            entity.properties.get(key) == Some(value)
                         })
                     } else {
                         true

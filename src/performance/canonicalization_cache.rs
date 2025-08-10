@@ -86,7 +86,7 @@ impl CanonicalizationCache {
         } else {
             // Cache miss - compute the result
             self.misses += 1;
-            let (hash, computation_time) = compute_fn(rdf_content);
+            let (hash, _computation_time) = compute_fn(rdf_content);
             
             // Add to cache
             self.insert(cache_key, hash.clone());
@@ -276,7 +276,7 @@ mod tests {
         
         // Test cache miss and insertion
         let result1 = cache.get_or_compute("test1", |content| {
-            (format!("hash_{}", content), Duration::from_millis(10))
+            (format!("hash_{content}"), Duration::from_millis(10))
         });
         assert_eq!(result1, "hash_test1");
         assert_eq!(cache.size(), 1);
@@ -284,7 +284,7 @@ mod tests {
         
         // Test cache hit
         let result2 = cache.get_or_compute("test1", |content| {
-            (format!("hash_{}", content), Duration::from_millis(10))
+            (format!("hash_{content}"), Duration::from_millis(10))
         });
         assert_eq!(result2, "hash_test1");
         assert_eq!(cache.size(), 1);
@@ -296,12 +296,12 @@ mod tests {
         let mut cache = CanonicalizationCache::new(2);
         
         // Fill cache to capacity
-        cache.get_or_compute("test1", |content| (format!("hash_{}", content), Duration::from_millis(10)));
-        cache.get_or_compute("test2", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test1", |content| (format!("hash_{content}"), Duration::from_millis(10)));
+        cache.get_or_compute("test2", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         assert_eq!(cache.size(), 2);
         
         // Add third item, should evict first
-        cache.get_or_compute("test3", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test3", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         assert_eq!(cache.size(), 2);
         
         // test1 should be evicted, test2 and test3 should remain
@@ -314,9 +314,9 @@ mod tests {
         let mut cache = CanonicalizationCache::new(3);
         
         // Fill cache
-        cache.get_or_compute("test1", |content| (format!("hash_{}", content), Duration::from_millis(10)));
-        cache.get_or_compute("test2", |content| (format!("hash_{}", content), Duration::from_millis(10)));
-        cache.get_or_compute("test3", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test1", |content| (format!("hash_{content}"), Duration::from_millis(10)));
+        cache.get_or_compute("test2", |content| (format!("hash_{content}"), Duration::from_millis(10)));
+        cache.get_or_compute("test3", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         assert_eq!(cache.size(), 3);
         
         // Resize to smaller size
@@ -329,8 +329,8 @@ mod tests {
     fn test_cache_clear() {
         let mut cache = CanonicalizationCache::new(3);
         
-        cache.get_or_compute("test1", |content| (format!("hash_{}", content), Duration::from_millis(10)));
-        cache.get_or_compute("test2", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test1", |content| (format!("hash_{content}"), Duration::from_millis(10)));
+        cache.get_or_compute("test2", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         
         assert_eq!(cache.size(), 2);
         assert!(cache.get_stats().misses > 0);
@@ -359,16 +359,16 @@ mod tests {
         let mut cache = CanonicalizationCache::new(5);
         
         // Add entries with different access patterns
-        cache.get_or_compute("test1", |content| (format!("hash_{}", content), Duration::from_millis(10)));
-        cache.get_or_compute("test2", |content| (format!("hash_{}", content), Duration::from_millis(10)));
-        cache.get_or_compute("test3", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test1", |content| (format!("hash_{content}"), Duration::from_millis(10)));
+        cache.get_or_compute("test2", |content| (format!("hash_{content}"), Duration::from_millis(10)));
+        cache.get_or_compute("test3", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         
         // Access test1 multiple times
-        cache.get_or_compute("test1", |content| (format!("hash_{}", content), Duration::from_millis(10)));
-        cache.get_or_compute("test1", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test1", |content| (format!("hash_{content}"), Duration::from_millis(10)));
+        cache.get_or_compute("test1", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         
         // Access test2 once more
-        cache.get_or_compute("test2", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test2", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         
         let most_accessed = cache.get_most_accessed_entries(2);
         assert_eq!(most_accessed.len(), 2);
@@ -383,8 +383,8 @@ mod tests {
         
         let initial_memory = cache.estimate_memory_usage();
         
-        cache.get_or_compute("test1", |content| (format!("hash_{}", content), Duration::from_millis(10)));
-        cache.get_or_compute("test2", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test1", |content| (format!("hash_{content}"), Duration::from_millis(10)));
+        cache.get_or_compute("test2", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         
         let memory_with_entries = cache.estimate_memory_usage();
         assert!(memory_with_entries > initial_memory);
@@ -408,7 +408,7 @@ mod tests {
     fn test_expired_entry_removal() {
         let mut cache = CanonicalizationCache::new(10);
         
-        cache.get_or_compute("test1", |content| (format!("hash_{}", content), Duration::from_millis(10)));
+        cache.get_or_compute("test1", |content| (format!("hash_{content}"), Duration::from_millis(10)));
         assert_eq!(cache.size(), 1);
         
         // Remove entries older than 0 seconds (should remove all)

@@ -86,9 +86,9 @@ pub fn run_demo() {
     ];
 
     for qfile in queries {
-        let path = format!("queries/{}", qfile);
+        let path = format!("queries/{qfile}");
         if let Ok(qtext) = fs::read_to_string(&path) {
-            println!("\n=== Running query: {} ===", qfile);
+            println!("\n=== Running query: {qfile} ===");
             if let oxigraph::sparql::QueryResults::Solutions(solutions) = bc.rdf_store.query(&qtext) {
                 for solution in solutions {
                     println!("{:?}", solution.unwrap());

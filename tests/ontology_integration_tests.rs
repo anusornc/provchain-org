@@ -8,7 +8,7 @@ fn test_ontology_loading() {
     
     // Check that ontology classes are loaded
     let classes = bc.rdf_store.get_ontology_classes();
-    println!("Loaded ontology classes: {:?}", classes);
+    println!("Loaded ontology classes: {classes:?}");
     
     // Should contain our main ontology classes
     let class_strings = classes.join(" ");
@@ -46,7 +46,7 @@ fn test_ontology_validation() {
     
     // Validate the last block's data
     let last_block_index = bc.chain.len() - 1;
-    let graph_name = NamedNode::new(format!("http://provchain.org/block/{}", last_block_index)).unwrap();
+    let graph_name = NamedNode::new(format!("http://provchain.org/block/{last_block_index}")).unwrap();
     
     // Test ontology validation
     let is_valid = bc.rdf_store.validate_against_ontology(&graph_name);
@@ -54,7 +54,7 @@ fn test_ontology_validation() {
     
     // Test required properties validation
     let validation_errors = bc.rdf_store.validate_required_properties(&graph_name);
-    assert!(validation_errors.is_empty(), "Valid data should have no validation errors: {:?}", validation_errors);
+    assert!(validation_errors.is_empty(), "Valid data should have no validation errors: {validation_errors:?}");
 }
 
 #[test]
@@ -134,7 +134,7 @@ fn test_environmental_conditions_integration() {
         for solution in solutions {
             if let Ok(sol) = solution {
                 if let (Some(temp), Some(humidity)) = (sol.get("temp"), sol.get("humidity")) {
-                    println!("Found environmental conditions: temp={}, humidity={}", temp, humidity);
+                    println!("Found environmental conditions: temp={temp}, humidity={humidity}");
                     found_conditions = true;
                 }
             }
@@ -215,7 +215,7 @@ fn test_supply_chain_traceability() {
         for solution in solutions {
             if let Ok(sol) = solution {
                 if let Some(batch_id) = sol.get("batchId") {
-                    println!("Found batch: {}", batch_id);
+                    println!("Found batch: {batch_id}");
                     batch_count += 1;
                 }
             }

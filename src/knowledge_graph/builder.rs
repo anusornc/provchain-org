@@ -8,7 +8,7 @@ use crate::rdf_store::RDFStore;
 use oxigraph::model::*;
 use oxigraph::sparql::QueryResults;
 use std::collections::HashMap;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 
 /// Graph builder for constructing knowledge graphs from RDF data
@@ -68,7 +68,7 @@ impl GraphBuilder {
 
     /// Update knowledge graph with new block data
     pub fn update_with_block(&self, kg: &mut KnowledgeGraph, block_index: usize) -> Result<()> {
-        let graph_name = NamedNode::new(format!("http://provchain.org/block/{}", block_index))?;
+        let graph_name = NamedNode::new(format!("http://provchain.org/block/{block_index}"))?;
 
         // Extract entities from the specific block
         for extractor in &self.entity_extractors {
@@ -116,7 +116,7 @@ impl GraphBuilder {
                             
                             // Extract block index from URI
                             let block_uri = block.to_string();
-                            if let Some(index_str) = block_uri.split('/').last() {
+                            if let Some(index_str) = block_uri.split('/').next_back() {
                                 if let Ok(block_index) = index_str.parse::<usize>() {
                                     // Update cumulative knowledge graph
                                     self.update_with_block(&mut cumulative_kg, block_index)?;
@@ -146,7 +146,7 @@ impl GraphBuilder {
 pub trait EntityExtractor: Send + Sync {
     fn extract_entities(&self, rdf_store: &RDFStore) -> Result<Vec<KnowledgeEntity>>;
     
-    fn extract_entities_from_graph(&self, rdf_store: &RDFStore, graph: &NamedNode) -> Result<Vec<KnowledgeEntity>> {
+    fn extract_entities_from_graph(&self, rdf_store: &RDFStore, _graph: &NamedNode) -> Result<Vec<KnowledgeEntity>> {
         // Default implementation extracts from all graphs
         self.extract_entities(rdf_store)
     }
@@ -156,7 +156,7 @@ pub trait EntityExtractor: Send + Sync {
 pub trait RelationshipExtractor: Send + Sync {
     fn extract_relationships(&self, rdf_store: &RDFStore) -> Result<Vec<KnowledgeRelationship>>;
     
-    fn extract_relationships_from_graph(&self, rdf_store: &RDFStore, graph: &NamedNode) -> Result<Vec<KnowledgeRelationship>> {
+    fn extract_relationships_from_graph(&self, rdf_store: &RDFStore, _graph: &NamedNode) -> Result<Vec<KnowledgeRelationship>> {
         // Default implementation extracts from all graphs
         self.extract_relationships(rdf_store)
     }
@@ -240,7 +240,7 @@ impl EntityExtractor for AgentExtractor {
                     if let (Some(agent), Some(agent_type)) = (sol.get("agent"), sol.get("type")) {
                         let type_name = agent_type.to_string()
                             .split('#')
-                            .last()
+                            .next_back()
                             .unwrap_or("Agent")
                             .to_string();
 
@@ -293,7 +293,7 @@ impl EntityExtractor for ActivityExtractor {
 
                         let type_name = activity_type.to_string()
                             .split('#')
-                            .last()
+                            .next_back()
                             .unwrap_or("Activity")
                             .to_string();
 

@@ -14,7 +14,6 @@ use anyhow::Result;
 use tracing::{info, warn, debug, error};
 use chrono::{DateTime, Utc, Duration};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature, Signer, Verifier};
-use rand::rngs::OsRng;
 
 use crate::blockchain::{Blockchain, Block};
 use crate::config::ConsensusConfig;
@@ -326,7 +325,7 @@ impl ConsensusManager {
         }
 
         // Check timing constraints
-        if !self.validate_block_timing(&proposal).await? {
+        if !self.validate_block_timing(proposal).await? {
             warn!("Block proposal violates timing constraints");
             return Ok(false);
         }

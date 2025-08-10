@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 /// Performance metrics collector
 pub struct MetricsCollector {
     /// Collection interval
-    interval: Duration,
+    _interval: Duration,
     /// Total operations processed
     total_operations: u64,
     /// Operation timing history
@@ -26,7 +26,7 @@ impl MetricsCollector {
     /// Create a new metrics collector
     pub fn new(interval: Duration) -> Self {
         Self {
-            interval,
+            _interval: interval,
             total_operations: 0,
             operation_timings: VecDeque::new(),
             memory_samples: VecDeque::new(),
@@ -160,7 +160,7 @@ impl MetricsReport {
         if !self.custom_metrics.is_empty() {
             println!("Custom metrics:");
             for (name, value) in &self.custom_metrics {
-                println!("  {}: {:.2}", name, value);
+                println!("  {name}: {value:.2}");
             }
         }
         println!("==================================\n");

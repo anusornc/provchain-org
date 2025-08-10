@@ -21,6 +21,12 @@ pub struct ProvChainMetrics {
     pub total_test_duration: Duration,
 }
 
+impl Default for ProvChainMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProvChainMetrics {
     pub fn new() -> Self {
         Self {
@@ -175,7 +181,7 @@ fn run_blockchain_scaling_test(num_blocks: u32) -> ProvChainMetrics {
         }
         
         if i % 1000 == 0 && i > 0 {
-            println!("Processed {} blocks...", i);
+            println!("Processed {i} blocks...");
         }
     }
     
@@ -205,7 +211,7 @@ fn benchmark_rdf_canonicalization_complexity() {
     for &complexity in &complexity_levels {
         let mut rdf_store = RDFStore::new();
         let rdf_data = generate_complex_rdf_with_blank_nodes(complexity);
-        let graph_name = NamedNode::new(&format!("http://example.org/complexity_{}", complexity)).unwrap();
+        let graph_name = NamedNode::new(format!("http://example.org/complexity_{complexity}")).unwrap();
         
         rdf_store.add_rdf_to_graph(&rdf_data, &graph_name);
         
@@ -215,7 +221,7 @@ fn benchmark_rdf_canonicalization_complexity() {
         let duration = start.elapsed();
         
         results.insert(complexity, duration);
-        println!("Complexity {}: {:?}", complexity, duration);
+        println!("Complexity {complexity}: {duration:?}");
     }
     
     // Verify that canonicalization time scales reasonably
@@ -316,7 +322,7 @@ fn benchmark_concurrent_operations() {
                 thread::sleep(Duration::from_millis(10));
             }
             
-            println!("Thread {} completed", thread_id);
+            println!("Thread {thread_id} completed");
         });
         handles.push(handle);
     }
@@ -327,7 +333,7 @@ fn benchmark_concurrent_operations() {
     }
     
     let duration = start.elapsed();
-    println!("Concurrent operations completed in: {:?}", duration);
+    println!("Concurrent operations completed in: {duration:?}");
     
     // Verify blockchain is still valid after concurrent access
     let blockchain = bc.lock().unwrap();
@@ -360,7 +366,7 @@ fn benchmark_memory_usage_growth() {
         let last_sample = memory_samples.last().unwrap().1;
         let growth_ratio = last_sample as f64 / first_sample as f64;
         
-        println!("Memory growth ratio: {:.2}x", growth_ratio);
+        println!("Memory growth ratio: {growth_ratio:.2}x");
         assert!(growth_ratio < 20.0, "Memory growth should be reasonable (less than 20x for 10x data)");
     }
 }
@@ -385,7 +391,7 @@ fn benchmark_provchain_vs_simple_blockchain() {
     let simple_start = Instant::now();
     let mut simple_chain = Vec::new();
     for i in 0..num_blocks {
-        let simple_data = format!("Simple transaction {}", i);
+        let simple_data = format!("Simple transaction {i}");
         // Simulate simple hash calculation
         use sha2::{Sha256, Digest};
         let mut hasher = Sha256::new();
@@ -395,11 +401,11 @@ fn benchmark_provchain_vs_simple_blockchain() {
     }
     let simple_duration = simple_start.elapsed();
     
-    println!("ProvChain (RDF + Canonicalization): {:?}", provchain_duration);
-    println!("Simple Blockchain (String + Hash): {:?}", simple_duration);
+    println!("ProvChain (RDF + Canonicalization): {provchain_duration:?}");
+    println!("Simple Blockchain (String + Hash): {simple_duration:?}");
     
     let overhead_ratio = provchain_duration.as_secs_f64() / simple_duration.as_secs_f64();
-    println!("ProvChain overhead ratio: {:.2}x", overhead_ratio);
+    println!("ProvChain overhead ratio: {overhead_ratio:.2}x");
     
     // ProvChain should be slower due to RDF processing, but not excessively so
     assert!(overhead_ratio < 100.0, "ProvChain overhead should be reasonable (less than 100x)");
@@ -417,6 +423,6 @@ fn benchmark_provchain_vs_simple_blockchain() {
     let _results = bc.rdf_store.query(query);
     let query_duration = query_start.elapsed();
     
-    println!("ProvChain semantic query capability: {:?}", query_duration);
+    println!("ProvChain semantic query capability: {query_duration:?}");
     println!("Simple blockchain semantic query capability: Not available");
 }

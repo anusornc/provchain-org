@@ -358,7 +358,7 @@ impl ComplianceManager {
                     .collect();
                 
                 let export_data = serde_json::to_string(&subject_data)
-                    .map_err(|e| ProductionError::Compliance(format!("Failed to export data: {}", e)))?;
+                    .map_err(|e| ProductionError::Compliance(format!("Failed to export data: {e}")))?;
                 
                 Ok(GdprResponse::DataPortability { export_data })
             },
@@ -444,17 +444,17 @@ Generated: {}
             if self.config.data_anonymization_enabled { "Yes" } else { "No" },
             events.len(),
             regulation_counts.iter()
-                .map(|(k, v)| format!("- {}: {}", k, v))
+                .map(|(k, v)| format!("- {k}: {v}"))
                 .collect::<Vec<_>>()
                 .join("\n"),
             status_counts.iter()
-                .map(|(k, v)| format!("- {}: {}", k, v))
+                .map(|(k, v)| format!("- {k}: {v}"))
                 .collect::<Vec<_>>()
                 .join("\n"),
             inventory.len(),
             expired_count,
             classification_counts.iter()
-                .map(|(k, v)| format!("- {}: {}", k, v))
+                .map(|(k, v)| format!("- {k}: {v}"))
                 .collect::<Vec<_>>()
                 .join("\n"),
             self.config.compliance_policies.iter()
@@ -531,7 +531,7 @@ ProvChain: ________________ Date: _________
         tracing::info!("Shutting down compliance systems");
         
         // Generate final compliance report
-        let report = self.generate_compliance_report().await;
+        let _report = self.generate_compliance_report().await;
         tracing::info!("Final compliance report generated");
         
         Ok(())

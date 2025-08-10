@@ -1,10 +1,9 @@
 //! HTTP handlers for REST API endpoints
 
 use crate::blockchain::Blockchain;
-use crate::rdf_store::RDFStore;
 use crate::web::models::{
     BlockchainStatus, BlockInfo, TransactionInfo, AddTripleRequest, 
-    SparqlQueryRequest, SparqlQueryResponse, ProductTrace, TraceEvent,
+    SparqlQueryRequest, SparqlQueryResponse, ProductTrace,
     EnvironmentalData, ApiError, UserClaims
 };
 use axum::{
@@ -14,7 +13,6 @@ use axum::{
 };
 use chrono::Utc;
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
@@ -87,7 +85,7 @@ pub async fn get_block(
             StatusCode::NOT_FOUND,
             Json(ApiError {
                 error: "block_not_found".to_string(),
-                message: format!("Block with index {} not found", block_index),
+                message: format!("Block with index {block_index} not found"),
                 timestamp: Utc::now(),
             }),
         ))
@@ -236,7 +234,7 @@ pub async fn get_product_trace(
         
         SELECT ?product ?origin ?location ?status ?actor ?action ?timestamp
         WHERE {{
-            ?batch tc:batchId "{}" .
+            ?batch tc:batchId "{batch_id}" .
             ?batch tc:product ?product .
             OPTIONAL {{ ?batch tc:origin ?origin }}
             OPTIONAL {{ ?batch tc:currentLocation ?location }}
@@ -249,12 +247,11 @@ pub async fn get_product_trace(
             }}
         }}
         ORDER BY ?timestamp
-        "#,
-        batch_id
+        "#
     );
     
     // Access the RDF store through the blockchain
-    let query_results = blockchain.rdf_store.query(&sparql_query);
+    let _query_results = blockchain.rdf_store.query(&sparql_query);
     
     // For now, return a mock response since we need to properly parse the results
     let product_trace = ProductTrace {

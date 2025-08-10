@@ -1,8 +1,6 @@
 //! Deployment automation and orchestration for production
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
 use crate::production::ProductionError;
 
 /// Deployment configuration
@@ -316,7 +314,7 @@ impl DeploymentManager {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
             // Health check after each replica update
-            let health_results = self.run_health_checks(&format!("replica-{}", i)).await?;
+            let health_results = self.run_health_checks(&format!("replica-{i}")).await?;
             self.add_health_check_results(deployment_id, health_results).await?;
         }
 
@@ -343,7 +341,7 @@ impl DeploymentManager {
             tracing::info!("Increasing canary traffic to {}%", percentage);
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
-            let health_results = self.run_health_checks(&format!("canary-{}", percentage)).await?;
+            let health_results = self.run_health_checks(&format!("canary-{percentage}")).await?;
             self.add_health_check_results(deployment_id, health_results).await?;
         }
 
@@ -592,7 +590,7 @@ Generated: {}
                 .take(5)
                 .map(|d| format!("- {} ({}): {:?} - {}", 
                     d.version, 
-                    d.id[..8].to_string(),
+                    &d.id[..8],
                     d.status,
                     d.started_at.format("%Y-%m-%d %H:%M:%S")
                 ))
@@ -603,8 +601,7 @@ Generated: {}
 
     /// Generate CI/CD pipeline configuration
     pub fn generate_cicd_pipeline(&self) -> String {
-        format!(
-            r#"# CI/CD Pipeline Configuration for ProvChain
+        r#"# CI/CD Pipeline Configuration for ProvChain
 name: ProvChain Deployment Pipeline
 
 on:
@@ -641,8 +638,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     outputs:
-      image: ${{{{ steps.image.outputs.image }}}}
-      digest: ${{{{ steps.build.outputs.digest }}}}
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@v3
       
@@ -652,15 +649,15 @@ jobs:
       - name: Login to Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{{{ env.REGISTRY }}}}
-          username: ${{{{ github.actor }}}}
-          password: ${{{{ secrets.GITHUB_TOKEN }}}}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{{{ env.REGISTRY }}}}/${{{{ env.IMAGE_NAME }}}}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           
       - name: Build and push
         id: build
@@ -668,8 +665,8 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{{{ steps.meta.outputs.tags }}}}
-          labels: ${{{{ steps.meta.outputs.labels }}}}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy-staging:
     if: github.ref == 'refs/heads/develop'
@@ -702,7 +699,6 @@ jobs:
         run: |
           echo "Deployment completed successfully"
           # Send notification to team
-"#
-        )
+"#.to_string()
     }
 }

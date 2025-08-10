@@ -62,6 +62,12 @@ pub struct Blockchain {
     pub rdf_store: RDFStore,
 }
 
+impl Default for Blockchain {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Blockchain {
     pub fn new() -> Self {
         let mut bc = Blockchain {

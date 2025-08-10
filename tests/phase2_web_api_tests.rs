@@ -13,8 +13,6 @@ use provchain_org::blockchain::Blockchain;
 use provchain_org::rdf_store::RDFStore;
 use provchain_org::config::NodeConfig;
 use serde_json::json;
-use std::time::Duration;
-use tokio::time::timeout;
 use chrono::Utc;
 
 /// Test helper to create a test web server instance
@@ -26,7 +24,7 @@ fn create_test_server() -> WebServer {
 }
 
 /// Test helper to get authentication token (for integration tests)
-async fn get_auth_token(server_url: &str, username: &str, password: &str) -> Result<String, Box<dyn std::error::Error>> {
+async fn _get_auth_token(server_url: &str, username: &str, password: &str) -> Result<String, Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
     let auth_request = AuthRequest {
         username: username.to_string(),
@@ -34,7 +32,7 @@ async fn get_auth_token(server_url: &str, username: &str, password: &str) -> Res
     };
     
     let response = client
-        .post(&format!("{}/auth/login", server_url))
+        .post(format!("{server_url}/auth/login"))
         .json(&auth_request)
         .send()
         .await?;
@@ -276,7 +274,7 @@ fn test_actor_role_serialization() {
     for role in roles {
         let json = serde_json::to_string(&role).unwrap();
         let deserialized: ActorRole = serde_json::from_str(&json).unwrap();
-        assert_eq!(format!("{:?}", role), format!("{:?}", deserialized));
+        assert_eq!(format!("{role:?}"), format!("{:?}", deserialized));
     }
 }
 

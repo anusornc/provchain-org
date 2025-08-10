@@ -478,7 +478,7 @@ configMap:
         self.config
             .port_mappings
             .keys()
-            .map(|port| format!("EXPOSE {}", port))
+            .map(|port| format!("EXPOSE {port}"))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -487,7 +487,7 @@ configMap:
         self.config
             .environment_vars
             .iter()
-            .map(|(key, value)| format!("ENV {}={}", key, value))
+            .map(|(key, value)| format!("ENV {key}={value}"))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -496,7 +496,7 @@ configMap:
         self.config
             .port_mappings
             .iter()
-            .map(|(container_port, host_port)| format!("      - \"{}:{}\"", host_port, container_port))
+            .map(|(container_port, host_port)| format!("      - \"{host_port}:{container_port}\""))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -505,7 +505,7 @@ configMap:
         self.config
             .environment_vars
             .iter()
-            .map(|(key, value)| format!("      - {}={}", key, value))
+            .map(|(key, value)| format!("      - {key}={value}"))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -530,7 +530,7 @@ configMap:
         self.config
             .environment_vars
             .iter()
-            .map(|(key, value)| format!("        - name: {}\n          value: \"{}\"", key, value))
+            .map(|(key, value)| format!("        - name: {key}\n          value: \"{value}\""))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -572,27 +572,27 @@ configMap:
 
         // Create output directory
         fs::create_dir_all(output_dir).await
-            .map_err(|e| ProductionError::Configuration(format!("Failed to create output directory: {}", e)))?;
+            .map_err(|e| ProductionError::Configuration(format!("Failed to create output directory: {e}")))?;
 
         // Write Dockerfile
         let dockerfile_path = output_dir.join("Dockerfile");
         fs::write(&dockerfile_path, self.generate_dockerfile()).await
-            .map_err(|e| ProductionError::Configuration(format!("Failed to write Dockerfile: {}", e)))?;
+            .map_err(|e| ProductionError::Configuration(format!("Failed to write Dockerfile: {e}")))?;
 
         // Write Docker Compose
         let compose_path = output_dir.join("docker-compose.yml");
         fs::write(&compose_path, self.generate_docker_compose()).await
-            .map_err(|e| ProductionError::Configuration(format!("Failed to write docker-compose.yml: {}", e)))?;
+            .map_err(|e| ProductionError::Configuration(format!("Failed to write docker-compose.yml: {e}")))?;
 
         // Write Kubernetes deployment
         let k8s_path = output_dir.join("kubernetes-deployment.yaml");
         fs::write(&k8s_path, self.generate_kubernetes_deployment()).await
-            .map_err(|e| ProductionError::Configuration(format!("Failed to write Kubernetes deployment: {}", e)))?;
+            .map_err(|e| ProductionError::Configuration(format!("Failed to write Kubernetes deployment: {e}")))?;
 
         // Write Helm values
         let helm_path = output_dir.join("helm-values.yaml");
         fs::write(&helm_path, self.generate_helm_values()).await
-            .map_err(|e| ProductionError::Configuration(format!("Failed to write Helm values: {}", e)))?;
+            .map_err(|e| ProductionError::Configuration(format!("Failed to write Helm values: {e}")))?;
 
         tracing::info!("Container configuration files written to: {}", output_dir.display());
         Ok(())

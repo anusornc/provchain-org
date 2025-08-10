@@ -3,11 +3,11 @@
 //! This module provides risk assessment algorithms, supplier performance analytics,
 //! quality prediction models, and compliance monitoring capabilities.
 
-use super::{RiskLevel, QualityScore, ComplianceStatus, TimeSeriesPoint, TrendAnalysis, AnomalyDetection};
+use super::{RiskLevel, QualityScore, ComplianceStatus, TrendAnalysis};
 use crate::knowledge_graph::{KnowledgeGraph, KnowledgeEntity, KnowledgeRelationship};
 use std::collections::HashMap;
 use anyhow::Result;
-use chrono::{DateTime, Utc, Duration};
+use chrono::{DateTime, Utc};
 
 /// Supply chain analyzer for risk assessment and performance analytics
 pub struct SupplyChainAnalyzer {
@@ -48,7 +48,7 @@ impl SupplyChainAnalyzer {
         // Find the batch entity
         let batch_entity = self.entities.values()
             .find(|e| e.entity_type == "ProductBatch" && 
-                     e.properties.get("batchId").map_or(false, |id| id == batch_id))
+                     e.properties.get("batchId").is_some_and(|id| id == batch_id))
             .ok_or_else(|| anyhow::anyhow!("Batch not found: {}", batch_id))?;
 
         let mut risk_factors = Vec::new();
@@ -279,7 +279,7 @@ impl SupplyChainAnalyzer {
         let mut transport_times = Vec::new();
 
         for activity in activities {
-            if let Some(recorded_at) = activity.properties.get("recordedAt") {
+            if let Some(_recorded_at) = activity.properties.get("recordedAt") {
                 // Simulate processing/transport time calculation
                 let duration = self.calculate_activity_duration(activity);
                 

@@ -7,7 +7,7 @@ pub mod supply_chain;
 pub mod sustainability;
 pub mod predictive;
 
-use crate::knowledge_graph::{KnowledgeGraph, KnowledgeEntity};
+use crate::knowledge_graph::KnowledgeGraph;
 use crate::rdf_store::RDFStore;
 use std::collections::HashMap;
 use anyhow::Result;
@@ -16,7 +16,7 @@ use chrono::{DateTime, Utc};
 /// Main analytics engine
 pub struct AnalyticsEngine {
     knowledge_graph: KnowledgeGraph,
-    rdf_store: RDFStore,
+    _rdf_store: RDFStore,
     supply_chain_analyzer: supply_chain::SupplyChainAnalyzer,
     sustainability_tracker: sustainability::SustainabilityTracker,
     predictive_analyzer: predictive::PredictiveAnalyzer,
@@ -30,7 +30,7 @@ impl AnalyticsEngine {
             sustainability_tracker: sustainability::SustainabilityTracker::new(&knowledge_graph),
             predictive_analyzer: predictive::PredictiveAnalyzer::new(&knowledge_graph),
             knowledge_graph,
-            rdf_store,
+            _rdf_store: rdf_store,
         }
     }
 

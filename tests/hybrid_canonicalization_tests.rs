@@ -169,10 +169,10 @@ mod hybrid_canonicalization_tests {
         "#;
         store.add_rdf_to_graph(test_data2, &test_graph2);
         
-        let hash3 = store.canonicalize_graph_rdfc10(&test_graph2);
+        let _hash3 = store.canonicalize_graph_rdfc10(&test_graph2);
         // Note: Our simplified RDFC-1.0 implementation may not handle all isomorphic cases perfectly
         // This is expected for a research prototype
-        println!("🔍 Isomorphic graph hash: {}", &hash3[..16]);
+        println!("🔍 Isomorphic graph hash: {}", &_hash3[..16]);
         println!("✅ RDFC-1.0 implementation completed successfully");
     }
 
@@ -317,7 +317,7 @@ mod hybrid_canonicalization_tests {
         "#;
         store.add_rdf_to_graph(simple_trace_data, &simple_trace);
         
-        let (hash, metrics) = store.canonicalize_graph_adaptive(&simple_trace);
+        let (_hash, metrics) = store.canonicalize_graph_adaptive(&simple_trace);
         assert_eq!(metrics.algorithm_used, CanonicalizationAlgorithm::Custom);
         assert!(metrics.execution_time_ms < 100); // Should be very fast
         println!("✅ Simple supply chain trace uses Custom algorithm ({}ms)", metrics.execution_time_ms);
@@ -346,7 +346,7 @@ mod hybrid_canonicalization_tests {
         "#;
         store.add_rdf_to_graph(complex_trace_data, &complex_trace);
         
-        let (hash, metrics) = store.canonicalize_graph_adaptive(&complex_trace);
+        let (_hash, metrics) = store.canonicalize_graph_adaptive(&complex_trace);
         assert_eq!(metrics.algorithm_used, CanonicalizationAlgorithm::RDFC10);
         println!("✅ Complex supply chain trace uses RDFC-1.0 algorithm ({}ms)", metrics.execution_time_ms);
     }
@@ -397,9 +397,9 @@ mod hybrid_canonicalization_tests {
             let benchmark_time = start_time.elapsed();
             
             // Test adaptive selection
-            let (adaptive_hash, adaptive_metrics) = store.canonicalize_graph_adaptive(&graph_name);
+            let (_adaptive_hash, adaptive_metrics) = store.canonicalize_graph_adaptive(&graph_name);
             
-            println!("\n🔬 {} Graph:", name);
+            println!("\n🔬 {name} Graph:");
             println!("   Size: {} triples, {} blank nodes", 
                      custom_metrics.graph_size, custom_metrics.blank_node_count);
             println!("   Complexity: {:?}", custom_metrics.complexity);
@@ -410,7 +410,7 @@ mod hybrid_canonicalization_tests {
             
             if custom_metrics.execution_time_ms > 0 && rdfc10_metrics.execution_time_ms > 0 {
                 let speedup = rdfc10_metrics.execution_time_ms as f64 / custom_metrics.execution_time_ms as f64;
-                println!("   Performance Ratio: {:.1}x faster (Custom vs RDFC-1.0)", speedup);
+                println!("   Performance Ratio: {speedup:.1}x faster (Custom vs RDFC-1.0)");
             }
             
             println!("   Benchmark Overhead: {}ms", benchmark_time.as_millis());

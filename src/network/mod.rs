@@ -17,15 +17,10 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 use anyhow::Result;
-use tracing::{info, warn, error};
 
 use crate::config::NodeConfig;
-use crate::blockchain::Blockchain;
-use self::peer::{PeerConnection, PeerServer, PeerClient};
+use self::peer::PeerConnection;
 use self::messages::{P2PMessage, PeerInfo};
-use self::discovery::PeerDiscovery;
-use self::sync::BlockchainSync;
-use self::consensus::ConsensusManager;
 
 /// Network manager for handling all P2P operations
 pub struct NetworkManager {

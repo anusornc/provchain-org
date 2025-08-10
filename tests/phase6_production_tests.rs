@@ -4,11 +4,10 @@
 //! including container orchestration, monitoring, security, compliance, and deployment automation.
 
 use provchain_org::production::{
-    self, ProductionConfig, ProductionManager, ProductionError,
+    ProductionConfig, ProductionManager, ProductionError,
     container, monitoring, security, compliance, deployment
 };
 use std::collections::HashMap;
-use tokio;
 
 #[tokio::test]
 async fn test_production_manager_initialization() {
@@ -415,7 +414,7 @@ async fn test_production_config_serialization() {
 
 #[tokio::test]
 async fn test_container_file_generation() {
-    use std::path::PathBuf;
+    
     use tempfile::TempDir;
     
     let config = container::ContainerConfig::default();
@@ -517,10 +516,10 @@ fn test_data_classification_levels() {
     use compliance::DataClassification;
     
     let public = DataClassification::Public;
-    let internal = DataClassification::Internal;
-    let confidential = DataClassification::Confidential;
+    let _internal = DataClassification::Internal;
+    let _confidential = DataClassification::Confidential;
     let personal = DataClassification::Personal;
-    let restricted = DataClassification::Restricted;
+    let _restricted = DataClassification::Restricted;
     
     // Test serialization
     let public_json = serde_json::to_string(&public).unwrap();
@@ -534,10 +533,10 @@ fn test_data_classification_levels() {
 fn test_deployment_environments() {
     use deployment::DeploymentEnvironment;
     
-    let dev = DeploymentEnvironment::Development;
+    let _dev = DeploymentEnvironment::Development;
     let staging = DeploymentEnvironment::Staging;
     let prod = DeploymentEnvironment::Production;
-    let test = DeploymentEnvironment::Testing;
+    let _test = DeploymentEnvironment::Testing;
     
     // Test serialization
     let prod_json = serde_json::to_string(&prod).unwrap();
@@ -553,10 +552,10 @@ fn test_compliance_regulations() {
     
     let gdpr = ComplianceRegulation::GDPR;
     let fda = ComplianceRegulation::FDA;
-    let eu = ComplianceRegulation::EU;
-    let iso27001 = ComplianceRegulation::ISO27001;
-    let sox = ComplianceRegulation::SOX;
-    let hipaa = ComplianceRegulation::HIPAA;
+    let _eu = ComplianceRegulation::EU;
+    let _iso27001 = ComplianceRegulation::ISO27001;
+    let _sox = ComplianceRegulation::SOX;
+    let _hipaa = ComplianceRegulation::HIPAA;
     
     // Test serialization
     let gdpr_json = serde_json::to_string(&gdpr).unwrap();

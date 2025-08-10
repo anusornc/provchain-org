@@ -3,7 +3,6 @@
 //! This module provides carbon footprint calculation, environmental impact assessment,
 //! and ESG (Environmental, Social, Governance) reporting capabilities.
 
-use super::{TimeSeriesPoint, TrendAnalysis, TrendDirection};
 use crate::knowledge_graph::{KnowledgeGraph, KnowledgeEntity};
 use std::collections::HashMap;
 use anyhow::Result;
@@ -44,7 +43,7 @@ impl SustainabilityTracker {
     pub fn calculate_batch_carbon_footprint(&self, batch_id: &str) -> Result<CarbonFootprint> {
         let batch_entity = self.entities.values()
             .find(|e| e.entity_type == "ProductBatch" && 
-                     e.properties.get("batchId").map_or(false, |id| id == batch_id))
+                     e.properties.get("batchId").is_some_and(|id| id == batch_id))
             .ok_or_else(|| anyhow::anyhow!("Batch not found: {}", batch_id))?;
 
         let mut emissions = Vec::new();
@@ -133,7 +132,7 @@ impl SustainabilityTracker {
                     source: source.clone(),
                     co2_kg,
                     percentage,
-                    description: format!("Total {} emissions across all batches", source),
+                    description: format!("Total {source} emissions across all batches"),
                 }
             })
             .collect();

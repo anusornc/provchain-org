@@ -13,7 +13,7 @@ use uuid::Uuid;
 use anyhow::Result;
 
 use provchain_org::blockchain::Blockchain;
-use provchain_org::config::{NodeConfig, NetworkConfig, ConsensusConfig};
+use provchain_org::config::NodeConfig;
 use provchain_org::network::{NetworkManager, messages::{P2PMessage, PeerInfo}};
 use provchain_org::network::discovery::PeerDiscovery;
 

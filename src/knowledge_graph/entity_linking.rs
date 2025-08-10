@@ -3,10 +3,9 @@
 //! This module provides automatic entity resolution, deduplication,
 //! and confidence scoring for entity relationships.
 
-use super::{KnowledgeEntity, KnowledgeRelationship, KnowledgeGraph};
+use super::{KnowledgeEntity, KnowledgeGraph};
 use std::collections::HashMap;
 use anyhow::Result;
-use regex::Regex;
 use lazy_static::lazy_static;
 
 /// Entity linking system for resolving and deduplicating entities
@@ -196,8 +195,8 @@ impl EntityLinker {
             if let Some(external_data) = resolver.resolve_entity(entity)? {
                 // Merge external data
                 for (key, value) in external_data.properties {
-                    if !enriched.properties.contains_key(&key) {
-                        enriched.properties.insert(key, value);
+                    if let std::collections::hash_map::Entry::Vacant(e) = enriched.properties.entry(key) {
+                        e.insert(value);
                         was_enriched = true;
                     }
                 }

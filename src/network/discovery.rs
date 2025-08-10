@@ -158,16 +158,16 @@ impl PeerDiscovery {
         let mut peers = self.known_peers.write().await;
         
         // Check if peer is already known
-        if peers.contains_key(&peer_info.node_id) {
+        if let std::collections::hash_map::Entry::Vacant(e) = peers.entry(peer_info.node_id) {
+            // Add new peer
+            info!("Discovered new peer: {} at {}", peer_info.node_id, peer_info.full_address());
+            e.insert(peer_info);
+        } else {
             // Update existing peer info
             if let Some(existing_peer) = peers.get_mut(&peer_info.node_id) {
                 existing_peer.update_last_seen();
                 debug!("Updated existing peer: {}", peer_info.node_id);
             }
-        } else {
-            // Add new peer
-            info!("Discovered new peer: {} at {}", peer_info.node_id, peer_info.full_address());
-            peers.insert(peer_info.node_id, peer_info);
         }
         
         Ok(())

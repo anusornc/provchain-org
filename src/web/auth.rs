@@ -10,7 +10,6 @@ use axum::{
 };
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -31,6 +30,12 @@ pub struct UserInfo {
 #[derive(Clone)]
 pub struct AuthState {
     pub users: UserDatabase,
+}
+
+impl Default for AuthState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AuthState {
@@ -205,7 +210,7 @@ pub fn require_role(required_role: ActorRole) -> impl Fn(Request, Next) -> std::
                         StatusCode::FORBIDDEN,
                         Json(ApiError {
                             error: "insufficient_permissions".to_string(),
-                            message: format!("Role '{}' required for this operation", required_role),
+                            message: format!("Role '{required_role}' required for this operation"),
                             timestamp: Utc::now(),
                         }),
                     ))

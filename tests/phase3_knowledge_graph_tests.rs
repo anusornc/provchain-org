@@ -13,10 +13,8 @@ use provchain_org::analytics::{
     sustainability::SustainabilityTracker, predictive::PredictiveAnalyzer
 };
 use provchain_org::rdf_store::RDFStore;
-use provchain_org::blockchain::Blockchain;
 use std::collections::HashMap;
 use anyhow::Result;
-use chrono::Utc;
 use petgraph::Graph;
 
 #[tokio::test]
@@ -228,7 +226,7 @@ async fn test_analytics_engine_integration() -> Result<()> {
     let analytics_engine = AnalyticsEngine::new(knowledge_graph, rdf_store);
     
     // Test basic analytics functionality
-    assert!(analytics_engine.get_knowledge_graph().entities.len() > 0);
+    assert!(!analytics_engine.get_knowledge_graph().entities.is_empty());
     
     println!("✓ Analytics engine integration test passed");
     Ok(())
@@ -290,9 +288,9 @@ async fn test_performance_benchmarks() -> Result<()> {
     assert!(entity_linking_time.as_millis() < 3000, "Entity linking should complete in reasonable time");
     
     println!("✓ Performance benchmarks test passed");
-    println!("  Graph construction: {:?}", graph_construction_time);
-    println!("  Analytics: {:?}", analytics_time);
-    println!("  Entity linking: {:?}", entity_linking_time);
+    println!("  Graph construction: {graph_construction_time:?}");
+    println!("  Analytics: {analytics_time:?}");
+    println!("  Entity linking: {entity_linking_time:?}");
     
     Ok(())
 }
@@ -459,10 +457,10 @@ fn create_large_test_knowledge_graph() -> KnowledgeGraph {
             _ => "Certificate",
         };
         
-        entities.insert(format!("entity_{:03}", i), KnowledgeEntity {
-            uri: format!("entity_{:03}", i),
+        entities.insert(format!("entity_{i:03}"), KnowledgeEntity {
+            uri: format!("entity_{i:03}"),
             entity_type: entity_type.to_string(),
-            label: Some(format!("{} {}", entity_type, i)),
+            label: Some(format!("{entity_type} {i}")),
             properties: {
                 let mut props = HashMap::new();
                 props.insert("id".to_string(), i.to_string());
@@ -475,7 +473,7 @@ fn create_large_test_knowledge_graph() -> KnowledgeGraph {
         // Create relationships between consecutive entities
         if i > 0 {
             relationships.push(KnowledgeRelationship {
-                subject: format!("entity_{:03}", i),
+                subject: format!("entity_{i:03}"),
                 predicate: "relatedTo".to_string(),
                 object: format!("entity_{:03}", i - 1),
                 confidence_score: 0.85,

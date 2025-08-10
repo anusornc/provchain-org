@@ -4,7 +4,7 @@ use oxigraph::sparql::QueryResults;
 use oxigraph::store::Store;
 use std::io::Cursor;
 use sha2::{Sha256, Digest};
-use std::collections::{HashSet, HashMap, BTreeMap};
+use std::collections::{HashSet, HashMap};
 use std::time::Instant;
 
 use crate::blockchain::Block;
@@ -80,6 +80,12 @@ impl IdentifierIssuer {
 
 pub struct RDFStore {
     pub store: Store,
+}
+
+impl Default for RDFStore {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RDFStore {
@@ -233,7 +239,7 @@ impl RDFStore {
         let serialisation_predicate = triple.predicate.to_string();
 
         // Concatenate and hash
-        let concatenation = format!("{}{}{}", serialisation_subject, serialisation_predicate, serialisation_object);
+        let concatenation = format!("{serialisation_subject}{serialisation_predicate}{serialisation_object}");
         let mut hasher = Sha256::new();
         hasher.update(concatenation.as_bytes());
         format!("{:x}", hasher.finalize())
@@ -243,7 +249,7 @@ impl RDFStore {
     fn triple_to_ntriples(&self, triple: &Triple) -> String {
         format!("{} {} {}", 
             self.subject_to_ntriples(&triple.subject),
-            triple.predicate.to_string(),
+            triple.predicate,
             self.term_to_ntriples(&triple.object)
         )
     }
@@ -386,7 +392,7 @@ impl RDFStore {
             for solution in solutions {
                 if let Ok(sol) = solution {
                     if let Some(batch) = sol.get("batch") {
-                        validation_errors.push(format!("ProductBatch {} missing required hasBatchID property", batch));
+                        validation_errors.push(format!("ProductBatch {batch} missing required hasBatchID property"));
                     }
                 }
             }
@@ -410,7 +416,7 @@ impl RDFStore {
             for solution in solutions {
                 if let Ok(sol) = solution {
                     if let Some(activity) = sol.get("activity") {
-                        validation_errors.push(format!("Activity {} missing required recordedAt property", activity));
+                        validation_errors.push(format!("Activity {activity} missing required recordedAt property"));
                     }
                 }
             }
@@ -443,7 +449,7 @@ impl RDFStore {
                         let label = sol.get("label")
                             .map(|l| l.to_string())
                             .unwrap_or_else(|| class.to_string());
-                        classes.push(format!("{} ({})", class, label));
+                        classes.push(format!("{class} ({label})"));
                     }
                 }
             }
@@ -606,12 +612,12 @@ impl RDFStore {
         for (i, quad) in quads.iter().enumerate() {
             if let Subject::BlankNode(bn) = &quad.subject {
                 blank_node_to_quads.entry(bn.as_str().to_string())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(i);
             }
             if let Term::BlankNode(bn) = &quad.object {
                 blank_node_to_quads.entry(bn.as_str().to_string())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(i);
             }
         }
@@ -621,12 +627,12 @@ impl RDFStore {
         for blank_node in blank_node_to_quads.keys() {
             let hash = self.hash_first_degree_quads(blank_node, &quads, &blank_node_to_quads);
             hash_to_blank_nodes.entry(hash)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(blank_node.clone());
         }
 
         // Step 3: Issue canonical identifiers for unique hashes
-        for (hash, blank_nodes) in &hash_to_blank_nodes {
+        for (_hash, blank_nodes) in &hash_to_blank_nodes {
             if blank_nodes.len() == 1 {
                 canonical_issuer.issue(Some(&blank_nodes[0]));
             }
@@ -634,7 +640,7 @@ impl RDFStore {
 
         // Step 4: Process shared hashes using N-degree hashing
         let mut hash_path_list = Vec::new();
-        for (hash, blank_nodes) in &hash_to_blank_nodes {
+        for (_hash, blank_nodes) in &hash_to_blank_nodes {
             if blank_nodes.len() > 1 {
                 for blank_node in blank_nodes {
                     if !canonical_issuer.issued.contains_key(blank_node) {
@@ -718,7 +724,7 @@ impl RDFStore {
                     if bn_str != identifier && !canonical_issuer.issued.contains_key(bn_str) {
                         let hash = self.hash_first_degree_quads(bn_str, quads, blank_node_to_quads);
                         hash_to_related_blank_nodes.entry(hash)
-                            .or_insert_with(Vec::new)
+                            .or_default()
                             .push(bn_str.to_string());
                     }
                 }
@@ -729,7 +735,7 @@ impl RDFStore {
                     if bn_str != identifier && !canonical_issuer.issued.contains_key(bn_str) {
                         let hash = self.hash_first_degree_quads(bn_str, quads, blank_node_to_quads);
                         hash_to_related_blank_nodes.entry(hash)
-                            .or_insert_with(Vec::new)
+                            .or_default()
                             .push(bn_str.to_string());
                     }
                 }
@@ -788,7 +794,7 @@ impl RDFStore {
             Term::Triple(_) => "<< >>".to_string(), // Simplified for quoted triples
         };
 
-        format!("{} {} {} .", subject_str, predicate_str, object_str)
+        format!("{subject_str} {predicate_str} {object_str} .")
     }
 
     /// Replace blank nodes with canonical identifiers
@@ -800,7 +806,7 @@ impl RDFStore {
         let subject_str = match &quad.subject {
             Subject::BlankNode(bn) => {
                 if let Some(canonical_id) = canonical_issuer.issued.get(bn.as_str()) {
-                    format!("_:{}", canonical_id)
+                    format!("_:{canonical_id}")
                 } else {
                     format!("_:{}", bn.as_str())
                 }
@@ -814,7 +820,7 @@ impl RDFStore {
         let object_str = match &quad.object {
             Term::BlankNode(bn) => {
                 if let Some(canonical_id) = canonical_issuer.issued.get(bn.as_str()) {
-                    format!("_:{}", canonical_id)
+                    format!("_:{canonical_id}")
                 } else {
                     format!("_:{}", bn.as_str())
                 }
@@ -824,7 +830,7 @@ impl RDFStore {
             Term::Triple(_) => "<< >>".to_string(),
         };
 
-        format!("{} {} {} .", subject_str, predicate_str, object_str)
+        format!("{subject_str} {predicate_str} {object_str} .")
     }
 
     /// Hash a string using SHA-256
@@ -882,8 +888,8 @@ impl RDFStore {
         // Verify correctness (hashes should be the same for isomorphic graphs)
         if custom_hash != rdfc10_hash {
             eprintln!("Warning: Canonicalization algorithms produced different hashes!");
-            eprintln!("Custom: {}", custom_hash);
-            eprintln!("RDFC-1.0: {}", rdfc10_hash);
+            eprintln!("Custom: {custom_hash}");
+            eprintln!("RDFC-1.0: {rdfc10_hash}");
         }
 
         (custom_metrics, rdfc10_metrics)

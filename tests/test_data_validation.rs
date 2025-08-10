@@ -57,7 +57,7 @@ fn test_complete_supply_chain_test_file() {
 
     if let QueryResults::Solutions(solutions) = store.query(query) {
         let results: Vec<_> = solutions.collect();
-        assert!(results.len() >= 1, "Should find at least one product batch");
+        assert!(!results.is_empty(), "Should find at least one product batch");
         
         // Check if we can find the specific milk batch
         let mut found_milk_batch = false;
@@ -100,7 +100,7 @@ fn test_supply_chain_provenance_relationships() {
 
     if let QueryResults::Solutions(solutions) = store.query(query) {
         let results: Vec<_> = solutions.collect();
-        assert!(results.len() >= 1, "Should find at least one derivation relationship");
+        assert!(!results.is_empty(), "Should find at least one derivation relationship");
     } else {
         panic!("SPARQL query failed");
     }

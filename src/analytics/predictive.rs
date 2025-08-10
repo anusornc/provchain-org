@@ -3,7 +3,7 @@
 //! This module provides demand forecasting, quality prediction models,
 //! and risk prediction algorithms for supply chain optimization.
 
-use super::{TimeSeriesPoint, TrendAnalysis, TrendDirection, AnomalyDetection, AnomalyPoint};
+use super::{TimeSeriesPoint, TrendDirection, AnomalyDetection, AnomalyPoint};
 use crate::knowledge_graph::{KnowledgeGraph, KnowledgeEntity};
 use std::collections::HashMap;
 use anyhow::Result;

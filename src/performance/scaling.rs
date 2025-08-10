@@ -38,11 +38,7 @@ impl NodeConfig {
     }
 
     pub fn available_capacity(&self) -> u32 {
-        if self.current_load >= self.capacity {
-            0
-        } else {
-            self.capacity - self.current_load
-        }
+        self.capacity.saturating_sub(self.current_load)
     }
 }
 
@@ -649,7 +645,7 @@ mod tests {
         
         let node1_id = scaler.select_node(Some("key1")).unwrap().node_id.clone();
         let node2_id = scaler.select_node(Some("key1")).unwrap().node_id.clone(); // Same key
-        let node3_id = scaler.select_node(Some("key2")).unwrap().node_id.clone(); // Different key
+        let _node3_id = scaler.select_node(Some("key2")).unwrap().node_id.clone(); // Different key
         
         assert_eq!(node1_id, node2_id); // Same key should go to same node
         // Different keys may or may not go to different nodes (depends on hash)

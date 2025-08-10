@@ -9,7 +9,6 @@ use provchain_org::performance::database_optimization::{QueryCache, QueryOptimiz
 use provchain_org::performance::concurrent_operations::ConcurrentManager;
 use provchain_org::performance::scaling::{HorizontalScaler, NodeConfig, LoadBalancingStrategy, ShardingStrategy, AutoScalingConfig, ClusterMetrics};
 use provchain_org::performance::storage_optimization::StorageOptimizer;
-use provchain_org::performance::metrics::MetricsCollector;
 use std::time::Duration;
 
 #[cfg(test)]
@@ -54,17 +53,17 @@ mod canonicalization_cache_tests {
         let content3 = "content3";
         
         // Fill cache to capacity
-        cache.get_or_compute(content1, |c| (format!("hash_{}", c), Duration::from_millis(10)));
-        cache.get_or_compute(content2, |c| (format!("hash_{}", c), Duration::from_millis(10)));
+        cache.get_or_compute(content1, |c| (format!("hash_{c}"), Duration::from_millis(10)));
+        cache.get_or_compute(content2, |c| (format!("hash_{c}"), Duration::from_millis(10)));
         assert_eq!(cache.size(), 2);
         
         // Add third item, should evict first
-        cache.get_or_compute(content3, |c| (format!("hash_{}", c), Duration::from_millis(10)));
+        cache.get_or_compute(content3, |c| (format!("hash_{c}"), Duration::from_millis(10)));
         assert_eq!(cache.size(), 2);
         
         // First item should be evicted, so this should be a miss
         let stats_before = cache.get_stats();
-        cache.get_or_compute(content1, |c| (format!("hash_{}", c), Duration::from_millis(10)));
+        cache.get_or_compute(content1, |c| (format!("hash_{c}"), Duration::from_millis(10)));
         let stats_after = cache.get_stats();
         
         assert_eq!(stats_after.misses, stats_before.misses + 1);
@@ -75,12 +74,12 @@ mod canonicalization_cache_tests {
         let mut cache = CanonicalizationCache::new(10);
         
         // Add some entries with different computation times
-        cache.get_or_compute("fast", |c| (format!("hash_{}", c), Duration::from_millis(10)));
-        cache.get_or_compute("slow", |c| (format!("hash_{}", c), Duration::from_millis(100)));
+        cache.get_or_compute("fast", |c| (format!("hash_{c}"), Duration::from_millis(10)));
+        cache.get_or_compute("slow", |c| (format!("hash_{c}"), Duration::from_millis(100)));
         
         // Access them again to generate hits
-        cache.get_or_compute("fast", |c| (format!("hash_{}", c), Duration::from_millis(10)));
-        cache.get_or_compute("slow", |c| (format!("hash_{}", c), Duration::from_millis(100)));
+        cache.get_or_compute("fast", |c| (format!("hash_{c}"), Duration::from_millis(10)));
+        cache.get_or_compute("slow", |c| (format!("hash_{c}"), Duration::from_millis(100)));
         
         let stats = cache.get_stats();
         assert_eq!(stats.hits, 2);
@@ -102,7 +101,7 @@ mod database_optimization_tests {
         
         // First execution should be a miss
         let result1 = cache.get_or_execute(query, |q| {
-            (format!("results for {}", q), Duration::from_millis(100))
+            (format!("results for {q}"), Duration::from_millis(100))
         });
         
         assert!(result1.contains("SELECT"));
@@ -110,7 +109,7 @@ mod database_optimization_tests {
         
         // Second execution should be a hit
         let result2 = cache.get_or_execute(query, |q| {
-            (format!("results for {}", q), Duration::from_millis(100))
+            (format!("results for {q}"), Duration::from_millis(100))
         });
         
         assert_eq!(result1, result2);
@@ -307,7 +306,7 @@ mod storage_optimization_tests {
         let test_data = b"Duplicate data for testing";
         
         // Compress same data twice
-        let compressed1 = optimizer.compress_data("test1".to_string(), test_data).unwrap();
+        let _compressed1 = optimizer.compress_data("test1".to_string(), test_data).unwrap();
         let compressed2 = optimizer.compress_data("test2".to_string(), test_data).unwrap();
         
         // Second compression should result in deduplication reference
@@ -422,7 +421,7 @@ mod integration_tests {
         
         // Simulate load distribution
         for i in 0..10 {
-            let selected = scaler.select_node(Some(&format!("request_{}", i)));
+            let selected = scaler.select_node(Some(&format!("request_{i}")));
             assert!(selected.is_some());
         }
         
@@ -458,11 +457,11 @@ mod integration_tests {
         let query = "SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10";
         
         let result1 = query_cache.get_or_execute(query, |q| {
-            (format!("results for {}", q), Duration::from_millis(200))
+            (format!("results for {q}"), Duration::from_millis(200))
         });
         
         let result2 = query_cache.get_or_execute(query, |q| {
-            (format!("results for {}", q), Duration::from_millis(200))
+            (format!("results for {q}"), Duration::from_millis(200))
         });
         
         assert_eq!(result1, result2);
@@ -543,7 +542,7 @@ mod benchmark_tests {
         
         // First execution (cache miss)
         let _result1 = cache.get_or_execute(query, |q| {
-            (format!("large result set for {}", q), Duration::from_millis(100))
+            (format!("large result set for {q}"), Duration::from_millis(100))
         });
         
         let miss_time = start.elapsed();
@@ -552,7 +551,7 @@ mod benchmark_tests {
         
         // Second execution (cache hit)
         let _result2 = cache.get_or_execute(query, |q| {
-            (format!("large result set for {}", q), Duration::from_millis(100))
+            (format!("large result set for {q}"), Duration::from_millis(100))
         });
         
         let hit_time = start.elapsed();
