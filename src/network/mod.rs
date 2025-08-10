@@ -4,20 +4,28 @@
 //! - Peer discovery and connection management
 //! - Message protocol for blockchain synchronization
 //! - WebSocket-based communication between nodes
+//! - Blockchain synchronization and consensus
 
 pub mod peer;
 pub mod messages;
 pub mod discovery;
+pub mod sync;
+pub mod consensus;
 
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 use anyhow::Result;
+use tracing::{info, warn, error};
 
 use crate::config::NodeConfig;
-use self::peer::PeerConnection;
+use crate::blockchain::Blockchain;
+use self::peer::{PeerConnection, PeerServer, PeerClient};
 use self::messages::{P2PMessage, PeerInfo};
+use self::discovery::PeerDiscovery;
+use self::sync::BlockchainSync;
+use self::consensus::ConsensusManager;
 
 /// Network manager for handling all P2P operations
 pub struct NetworkManager {

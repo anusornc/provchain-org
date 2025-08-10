@@ -107,7 +107,7 @@ pub struct PeerInfo {
 }
 
 /// Error codes for P2P communication
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ErrorCode {
     InvalidMessage,
     BlockNotFound,
