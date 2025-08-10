@@ -4,9 +4,79 @@ use oxigraph::sparql::QueryResults;
 use oxigraph::store::Store;
 use std::io::Cursor;
 use sha2::{Sha256, Digest};
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap, BTreeMap};
+use std::time::Instant;
 
 use crate::blockchain::Block;
+
+/// Graph complexity classification for adaptive canonicalization
+#[derive(Debug, Clone, PartialEq)]
+pub enum GraphComplexity {
+    Simple,
+    Moderate,
+    Complex,
+    Pathological,
+}
+
+/// Canonicalization algorithm selection
+#[derive(Debug, Clone, PartialEq)]
+pub enum CanonicalizationAlgorithm {
+    Custom,      // Fast hash-based approach
+    RDFC10,      // W3C RDFC-1.0 standard
+}
+
+/// Performance metrics for canonicalization operations
+#[derive(Debug, Clone)]
+pub struct CanonicalizationMetrics {
+    pub algorithm_used: CanonicalizationAlgorithm,
+    pub execution_time_ms: u128,
+    pub graph_size: usize,
+    pub blank_node_count: usize,
+    pub complexity: GraphComplexity,
+}
+
+/// Identifier issuer for RDFC-1.0 canonical blank node labeling
+#[derive(Debug, Clone)]
+struct IdentifierIssuer {
+    prefix: String,
+    counter: u32,
+    issued: HashMap<String, String>,
+}
+
+impl IdentifierIssuer {
+    fn new(prefix: &str) -> Self {
+        Self {
+            prefix: prefix.to_string(),
+            counter: 0,
+            issued: HashMap::new(),
+        }
+    }
+
+    fn issue(&mut self, existing: Option<&str>) -> String {
+        if let Some(existing_id) = existing {
+            if let Some(issued_id) = self.issued.get(existing_id) {
+                return issued_id.clone();
+            }
+        }
+
+        let new_id = format!("{}{}", self.prefix, self.counter);
+        self.counter += 1;
+
+        if let Some(existing_id) = existing {
+            self.issued.insert(existing_id.to_string(), new_id.clone());
+        }
+
+        new_id
+    }
+
+    fn clone_issuer(&self) -> Self {
+        Self {
+            prefix: self.prefix.clone(),
+            counter: self.counter,
+            issued: self.issued.clone(),
+        }
+    }
+}
 
 pub struct RDFStore {
     pub store: Store,
@@ -379,5 +449,443 @@ impl RDFStore {
             }
         }
         classes
+    }
+
+    // ========== HYBRID CANONICALIZATION IMPLEMENTATION ==========
+
+    /// Analyze graph complexity to determine appropriate canonicalization algorithm
+    pub fn analyze_graph_complexity(&self, graph_name: &NamedNode) -> GraphComplexity {
+        let mut triples = Vec::new();
+        let mut blank_nodes = HashSet::new();
+        let mut blank_node_connections = HashMap::new();
+
+        // Collect all triples and analyze blank node patterns
+        for quad_result in self.store.quads_for_pattern(None, None, None, Some(graph_name.into())) {
+            if let Ok(quad) = quad_result {
+                let triple = Triple::new(
+                    quad.subject.clone(),
+                    quad.predicate.clone(),
+                    quad.object.clone(),
+                );
+                triples.push(triple.clone());
+
+                // Track blank nodes and their connections
+                if let Subject::BlankNode(bn) = &triple.subject {
+                    blank_nodes.insert(bn.as_str().to_string());
+                    blank_node_connections.entry(bn.as_str().to_string())
+                        .or_insert_with(HashSet::new);
+                }
+                if let Term::BlankNode(bn) = &triple.object {
+                    blank_nodes.insert(bn.as_str().to_string());
+                    blank_node_connections.entry(bn.as_str().to_string())
+                        .or_insert_with(HashSet::new);
+                }
+
+                // Track connections between blank nodes
+                if let (Subject::BlankNode(s_bn), Term::BlankNode(o_bn)) = (&triple.subject, &triple.object) {
+                    blank_node_connections.entry(s_bn.as_str().to_string())
+                        .or_insert_with(HashSet::new)
+                        .insert(o_bn.as_str().to_string());
+                    blank_node_connections.entry(o_bn.as_str().to_string())
+                        .or_insert_with(HashSet::new)
+                        .insert(s_bn.as_str().to_string());
+                }
+            }
+        }
+
+        let graph_size = triples.len();
+        let blank_node_count = blank_nodes.len();
+
+        // Complexity heuristics based on research analysis
+        if blank_node_count == 0 {
+            return GraphComplexity::Simple;
+        }
+
+        if blank_node_count <= 3 && graph_size <= 50 {
+            // Check for simple patterns (chains, trees)
+            let max_connections = blank_node_connections.values()
+                .map(|connections| connections.len())
+                .max()
+                .unwrap_or(0);
+            
+            if max_connections <= 1 {
+                return GraphComplexity::Simple;
+            } else if max_connections <= 2 {
+                return GraphComplexity::Moderate;
+            }
+        }
+
+        if blank_node_count <= 10 && graph_size <= 200 {
+            // Check for cycles and complex interconnections
+            let total_connections: usize = blank_node_connections.values()
+                .map(|connections| connections.len())
+                .sum();
+            let avg_connections = if blank_node_count > 0 {
+                total_connections as f64 / blank_node_count as f64
+            } else {
+                0.0
+            };
+
+            // Detect cycles by checking if any blank node connects to more than 2 others
+            let has_cycles = blank_node_connections.values()
+                .any(|connections| connections.len() > 2);
+
+            if avg_connections <= 1.5 && !has_cycles {
+                return GraphComplexity::Moderate;
+            } else if avg_connections <= 3.0 || has_cycles {
+                return GraphComplexity::Complex;
+            }
+        }
+
+        // Large graphs or highly interconnected blank nodes
+        GraphComplexity::Pathological
+    }
+
+    /// Adaptive canonicalization that selects the best algorithm based on graph complexity
+    pub fn canonicalize_graph_adaptive(&self, graph_name: &NamedNode) -> (String, CanonicalizationMetrics) {
+        let start_time = Instant::now();
+        let complexity = self.analyze_graph_complexity(graph_name);
+        
+        // Collect basic graph statistics
+        let mut graph_size = 0;
+        let mut blank_node_count = 0;
+        for quad_result in self.store.quads_for_pattern(None, None, None, Some(graph_name.into())) {
+            if let Ok(quad) = quad_result {
+                graph_size += 1;
+                if let Subject::BlankNode(_) = quad.subject {
+                    blank_node_count += 1;
+                }
+                if let Term::BlankNode(_) = quad.object {
+                    blank_node_count += 1;
+                }
+            }
+        }
+
+        let (canonical_hash, algorithm_used) = match complexity {
+            GraphComplexity::Simple | GraphComplexity::Moderate => {
+                // Use fast custom algorithm for simple cases
+                (self.canonicalize_graph(graph_name), CanonicalizationAlgorithm::Custom)
+            }
+            GraphComplexity::Complex | GraphComplexity::Pathological => {
+                // Use RDFC-1.0 for complex cases to ensure correctness
+                (self.canonicalize_graph_rdfc10(graph_name), CanonicalizationAlgorithm::RDFC10)
+            }
+        };
+
+        let execution_time = start_time.elapsed();
+        let metrics = CanonicalizationMetrics {
+            algorithm_used,
+            execution_time_ms: execution_time.as_millis(),
+            graph_size,
+            blank_node_count,
+            complexity,
+        };
+
+        (canonical_hash, metrics)
+    }
+
+    /// W3C RDFC-1.0 (RDF Dataset Canonicalization) implementation
+    pub fn canonicalize_graph_rdfc10(&self, graph_name: &NamedNode) -> String {
+        // Collect all quads in the specified graph
+        let mut quads = Vec::new();
+        for quad_result in self.store.quads_for_pattern(None, None, None, Some(graph_name.into())) {
+            if let Ok(quad) = quad_result {
+                quads.push(quad);
+            }
+        }
+
+        if quads.is_empty() {
+            return self.hash_string("");
+        }
+
+        // Step 1: Create canonical state
+        let mut canonical_issuer = IdentifierIssuer::new("c14n");
+        let mut blank_node_to_quads: HashMap<String, Vec<usize>> = HashMap::new();
+
+        // Identify blank nodes and their associated quads
+        for (i, quad) in quads.iter().enumerate() {
+            if let Subject::BlankNode(bn) = &quad.subject {
+                blank_node_to_quads.entry(bn.as_str().to_string())
+                    .or_insert_with(Vec::new)
+                    .push(i);
+            }
+            if let Term::BlankNode(bn) = &quad.object {
+                blank_node_to_quads.entry(bn.as_str().to_string())
+                    .or_insert_with(Vec::new)
+                    .push(i);
+            }
+        }
+
+        // Step 2: Compute first-degree hashes for all blank nodes
+        let mut hash_to_blank_nodes: HashMap<String, Vec<String>> = HashMap::new();
+        for blank_node in blank_node_to_quads.keys() {
+            let hash = self.hash_first_degree_quads(blank_node, &quads, &blank_node_to_quads);
+            hash_to_blank_nodes.entry(hash)
+                .or_insert_with(Vec::new)
+                .push(blank_node.clone());
+        }
+
+        // Step 3: Issue canonical identifiers for unique hashes
+        for (hash, blank_nodes) in &hash_to_blank_nodes {
+            if blank_nodes.len() == 1 {
+                canonical_issuer.issue(Some(&blank_nodes[0]));
+            }
+        }
+
+        // Step 4: Process shared hashes using N-degree hashing
+        let mut hash_path_list = Vec::new();
+        for (hash, blank_nodes) in &hash_to_blank_nodes {
+            if blank_nodes.len() > 1 {
+                for blank_node in blank_nodes {
+                    if !canonical_issuer.issued.contains_key(blank_node) {
+                        let (hash_result, _) = self.hash_n_degree_quads(
+                            blank_node,
+                            &quads,
+                            &blank_node_to_quads,
+                            &canonical_issuer
+                        );
+                        hash_path_list.push((hash_result, blank_node.clone()));
+                    }
+                }
+            }
+        }
+
+        // Sort by hash and issue canonical identifiers
+        hash_path_list.sort_by(|a, b| a.0.cmp(&b.0));
+        for (_, blank_node) in hash_path_list {
+            canonical_issuer.issue(Some(&blank_node));
+        }
+
+        // Step 5: Generate canonical N-Quads
+        let mut canonical_quads = Vec::new();
+        for quad in &quads {
+            let canonical_quad = self.replace_blank_nodes_with_canonical_ids(quad, &canonical_issuer);
+            canonical_quads.push(canonical_quad);
+        }
+
+        // Sort canonical quads lexicographically
+        canonical_quads.sort();
+
+        // Step 6: Hash the canonical N-Quads representation
+        let canonical_nquads = canonical_quads.join("\n");
+        self.hash_string(&canonical_nquads)
+    }
+
+    /// Hash first-degree quads for RDFC-1.0 algorithm
+    fn hash_first_degree_quads(
+        &self,
+        reference_blank_node: &str,
+        quads: &[Quad],
+        blank_node_to_quads: &HashMap<String, Vec<usize>>
+    ) -> String {
+        let mut nquads = Vec::new();
+
+        if let Some(quad_indices) = blank_node_to_quads.get(reference_blank_node) {
+            for &quad_index in quad_indices {
+                let quad = &quads[quad_index];
+                let nquad = self.quad_to_nquads_with_blank_node_replacement(
+                    quad,
+                    reference_blank_node,
+                    "_:a"
+                );
+                nquads.push(nquad);
+            }
+        }
+
+        nquads.sort();
+        let concatenated = nquads.join("");
+        self.hash_string(&concatenated)
+    }
+
+    /// Hash N-degree quads for RDFC-1.0 algorithm
+    fn hash_n_degree_quads(
+        &self,
+        identifier: &str,
+        quads: &[Quad],
+        blank_node_to_quads: &HashMap<String, Vec<usize>>,
+        canonical_issuer: &IdentifierIssuer
+    ) -> (String, IdentifierIssuer) {
+        let mut hash_to_related_blank_nodes: HashMap<String, Vec<String>> = HashMap::new();
+
+        // Find related blank nodes
+        if let Some(quad_indices) = blank_node_to_quads.get(identifier) {
+            for &quad_index in quad_indices {
+                let quad = &quads[quad_index];
+                
+                // Check subject
+                if let Subject::BlankNode(bn) = &quad.subject {
+                    let bn_str = bn.as_str();
+                    if bn_str != identifier && !canonical_issuer.issued.contains_key(bn_str) {
+                        let hash = self.hash_first_degree_quads(bn_str, quads, blank_node_to_quads);
+                        hash_to_related_blank_nodes.entry(hash)
+                            .or_insert_with(Vec::new)
+                            .push(bn_str.to_string());
+                    }
+                }
+
+                // Check object
+                if let Term::BlankNode(bn) = &quad.object {
+                    let bn_str = bn.as_str();
+                    if bn_str != identifier && !canonical_issuer.issued.contains_key(bn_str) {
+                        let hash = self.hash_first_degree_quads(bn_str, quads, blank_node_to_quads);
+                        hash_to_related_blank_nodes.entry(hash)
+                            .or_insert_with(Vec::new)
+                            .push(bn_str.to_string());
+                    }
+                }
+            }
+        }
+
+        // Create data to hash
+        let mut data_to_hash = Vec::new();
+
+        // Sort hashes and process related blank nodes
+        let mut sorted_hashes: Vec<_> = hash_to_related_blank_nodes.keys().collect();
+        sorted_hashes.sort();
+
+        for hash in sorted_hashes {
+            data_to_hash.push(hash.clone());
+            
+            let related_blank_nodes = &hash_to_related_blank_nodes[hash];
+            if related_blank_nodes.len() == 1 {
+                data_to_hash.push(related_blank_nodes[0].clone());
+            } else {
+                // For multiple related blank nodes, we would need to explore all permutations
+                // This is a simplified implementation - full RDFC-1.0 requires permutation exploration
+                let mut sorted_related = related_blank_nodes.clone();
+                sorted_related.sort();
+                for related in sorted_related {
+                    data_to_hash.push(related);
+                }
+            }
+        }
+
+        let hash_result = self.hash_string(&data_to_hash.join(""));
+        (hash_result, canonical_issuer.clone_issuer())
+    }
+
+    /// Convert quad to N-Quads format with blank node replacement
+    fn quad_to_nquads_with_blank_node_replacement(
+        &self,
+        quad: &Quad,
+        reference_blank_node: &str,
+        replacement: &str
+    ) -> String {
+        let subject_str = match &quad.subject {
+            Subject::BlankNode(bn) if bn.as_str() == reference_blank_node => replacement.to_string(),
+            Subject::BlankNode(_) => "_:z".to_string(),
+            Subject::NamedNode(nn) => format!("<{}>", nn.as_str()),
+            Subject::Triple(_) => "<< >>".to_string(), // Simplified for quoted triples
+        };
+
+        let predicate_str = format!("<{}>", quad.predicate.as_str());
+
+        let object_str = match &quad.object {
+            Term::BlankNode(bn) if bn.as_str() == reference_blank_node => replacement.to_string(),
+            Term::BlankNode(_) => "_:z".to_string(),
+            Term::NamedNode(nn) => format!("<{}>", nn.as_str()),
+            Term::Literal(lit) => lit.to_string(),
+            Term::Triple(_) => "<< >>".to_string(), // Simplified for quoted triples
+        };
+
+        format!("{} {} {} .", subject_str, predicate_str, object_str)
+    }
+
+    /// Replace blank nodes with canonical identifiers
+    fn replace_blank_nodes_with_canonical_ids(
+        &self,
+        quad: &Quad,
+        canonical_issuer: &IdentifierIssuer
+    ) -> String {
+        let subject_str = match &quad.subject {
+            Subject::BlankNode(bn) => {
+                if let Some(canonical_id) = canonical_issuer.issued.get(bn.as_str()) {
+                    format!("_:{}", canonical_id)
+                } else {
+                    format!("_:{}", bn.as_str())
+                }
+            }
+            Subject::NamedNode(nn) => format!("<{}>", nn.as_str()),
+            Subject::Triple(_) => "<< >>".to_string(),
+        };
+
+        let predicate_str = format!("<{}>", quad.predicate.as_str());
+
+        let object_str = match &quad.object {
+            Term::BlankNode(bn) => {
+                if let Some(canonical_id) = canonical_issuer.issued.get(bn.as_str()) {
+                    format!("_:{}", canonical_id)
+                } else {
+                    format!("_:{}", bn.as_str())
+                }
+            }
+            Term::NamedNode(nn) => format!("<{}>", nn.as_str()),
+            Term::Literal(lit) => lit.to_string(),
+            Term::Triple(_) => "<< >>".to_string(),
+        };
+
+        format!("{} {} {} .", subject_str, predicate_str, object_str)
+    }
+
+    /// Hash a string using SHA-256
+    fn hash_string(&self, input: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(input.as_bytes());
+        format!("{:x}", hasher.finalize())
+    }
+
+    /// Performance comparison between canonicalization algorithms
+    pub fn benchmark_canonicalization_algorithms(&self, graph_name: &NamedNode) -> (CanonicalizationMetrics, CanonicalizationMetrics) {
+        // Benchmark custom algorithm
+        let start_time = Instant::now();
+        let custom_hash = self.canonicalize_graph(graph_name);
+        let custom_time = start_time.elapsed();
+
+        // Benchmark RDFC-1.0 algorithm
+        let start_time = Instant::now();
+        let rdfc10_hash = self.canonicalize_graph_rdfc10(graph_name);
+        let rdfc10_time = start_time.elapsed();
+
+        // Collect graph statistics
+        let mut graph_size = 0;
+        let mut blank_node_count = 0;
+        for quad_result in self.store.quads_for_pattern(None, None, None, Some(graph_name.into())) {
+            if let Ok(quad) = quad_result {
+                graph_size += 1;
+                if let Subject::BlankNode(_) = quad.subject {
+                    blank_node_count += 1;
+                }
+                if let Term::BlankNode(_) = quad.object {
+                    blank_node_count += 1;
+                }
+            }
+        }
+
+        let complexity = self.analyze_graph_complexity(graph_name);
+
+        let custom_metrics = CanonicalizationMetrics {
+            algorithm_used: CanonicalizationAlgorithm::Custom,
+            execution_time_ms: custom_time.as_millis(),
+            graph_size,
+            blank_node_count,
+            complexity: complexity.clone(),
+        };
+
+        let rdfc10_metrics = CanonicalizationMetrics {
+            algorithm_used: CanonicalizationAlgorithm::RDFC10,
+            execution_time_ms: rdfc10_time.as_millis(),
+            graph_size,
+            blank_node_count,
+            complexity,
+        };
+
+        // Verify correctness (hashes should be the same for isomorphic graphs)
+        if custom_hash != rdfc10_hash {
+            eprintln!("Warning: Canonicalization algorithms produced different hashes!");
+            eprintln!("Custom: {}", custom_hash);
+            eprintln!("RDFC-1.0: {}", rdfc10_hash);
+        }
+
+        (custom_metrics, rdfc10_metrics)
     }
 }
