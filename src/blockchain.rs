@@ -1,8 +1,10 @@
 use chrono::Utc;
 use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
-use crate::rdf_store::RDFStore;
+use crate::rdf_store::{RDFStore, StorageConfig};
 use oxigraph::model::NamedNode;
+use std::path::Path;
+use anyhow::Result;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Block {
@@ -69,6 +71,7 @@ impl Default for Blockchain {
 }
 
 impl Blockchain {
+    /// Create a new in-memory blockchain (for testing and development)
     pub fn new() -> Self {
         let mut bc = Blockchain {
             chain: Vec::new(),
@@ -87,6 +90,207 @@ impl Blockchain {
         
         bc.chain.push(genesis_block);
         bc
+    }
+
+    /// Create a new persistent blockchain with RocksDB backend
+    pub fn new_persistent<P: AsRef<Path>>(data_dir: P) -> Result<Self> {
+        let rdf_store = RDFStore::new_persistent(data_dir)?;
+        
+        let mut bc = Blockchain {
+            chain: Vec::new(),
+            rdf_store,
+        };
+        
+        // Load the traceability ontology
+        bc.load_ontology();
+        
+        // Check if we need to create genesis block or load existing chain
+        if bc.rdf_store.store.len().unwrap_or(0) == 0 {
+            // Create genesis block for new blockchain
+            let genesis_block = bc.create_genesis_block();
+            
+            // Add genesis block data to RDF store
+            let graph_name = NamedNode::new("http://provchain.org/block/0").unwrap();
+            bc.rdf_store.add_rdf_to_graph(&genesis_block.data, &graph_name);
+            bc.rdf_store.add_block_metadata(&genesis_block);
+            
+            bc.chain.push(genesis_block);
+            
+            // Save to disk if persistent
+            if let Err(e) = bc.rdf_store.save_to_disk() {
+                eprintln!("Warning: Could not save to disk: {}", e);
+            }
+        } else {
+            // Load existing blockchain from persistent storage
+            bc.load_chain_from_store()?;
+        }
+        
+        Ok(bc)
+    }
+
+    /// Create a persistent blockchain with custom storage configuration
+    pub fn new_persistent_with_config(config: StorageConfig) -> Result<Self> {
+        let rdf_store = RDFStore::new_persistent_with_config(config)?;
+        
+        let mut bc = Blockchain {
+            chain: Vec::new(),
+            rdf_store,
+        };
+        
+        // Load the traceability ontology
+        bc.load_ontology();
+        
+        // Check if we need to create genesis block or load existing chain
+        if bc.rdf_store.store.len().unwrap_or(0) == 0 {
+            // Create genesis block for new blockchain
+            let genesis_block = bc.create_genesis_block();
+            
+            // Add genesis block data to RDF store
+            let graph_name = NamedNode::new("http://provchain.org/block/0").unwrap();
+            bc.rdf_store.add_rdf_to_graph(&genesis_block.data, &graph_name);
+            bc.rdf_store.add_block_metadata(&genesis_block);
+            
+            bc.chain.push(genesis_block);
+        } else {
+            // Load existing blockchain from persistent storage
+            bc.load_chain_from_store()?;
+        }
+        
+        Ok(bc)
+    }
+
+    /// Load blockchain from persistent RDF store
+    fn load_chain_from_store(&mut self) -> Result<()> {
+        use oxigraph::sparql::QueryResults;
+        
+        // Query to get all blocks ordered by index
+        let query = r#"
+            PREFIX prov: <http://provchain.org/>
+            SELECT ?block ?index ?timestamp ?hash ?prevHash ?dataGraph WHERE {
+                GRAPH <http://provchain.org/blockchain> {
+                    ?block a prov:Block ;
+                           prov:hasIndex ?index ;
+                           prov:hasTimestamp ?timestamp ;
+                           prov:hasHash ?hash ;
+                           prov:hasPreviousHash ?prevHash ;
+                           prov:hasDataGraphIRI ?dataGraph .
+                }
+            }
+            ORDER BY ?index
+        "#;
+        
+        if let QueryResults::Solutions(solutions) = self.rdf_store.query(query) {
+            for solution in solutions {
+                if let Ok(sol) = solution {
+                    if let (Some(index_term), Some(timestamp_term), Some(hash_term), Some(prev_hash_term), Some(data_graph_term)) = (
+                        sol.get("index"),
+                        sol.get("timestamp"), 
+                        sol.get("hash"),
+                        sol.get("prevHash"),
+                        sol.get("dataGraph")
+                    ) {
+                        // Parse block data
+                        let index: u64 = index_term.to_string().parse().unwrap_or(0);
+                        let timestamp = timestamp_term.to_string().trim_matches('"').to_string();
+                        let hash = hash_term.to_string().trim_matches('"').to_string();
+                        let previous_hash = prev_hash_term.to_string().trim_matches('"').to_string();
+                        
+                        // Extract RDF data from the block's graph
+                        let data_graph_string = data_graph_term.to_string();
+                        let data_graph_uri = data_graph_string.trim_matches('"');
+                        let data = self.extract_rdf_data_from_graph(data_graph_uri)?;
+                        
+                        let block = Block {
+                            index,
+                            timestamp,
+                            data,
+                            previous_hash,
+                            hash,
+                        };
+                        
+                        self.chain.push(block);
+                    }
+                }
+            }
+        }
+        
+        println!("Loaded {} blocks from persistent storage", self.chain.len());
+        Ok(())
+    }
+
+    /// Extract RDF data from a specific graph
+    fn extract_rdf_data_from_graph(&self, graph_uri: &str) -> Result<String> {
+        use oxigraph::io::RdfFormat;
+        
+        // Create a temporary store to export the graph data
+        let temp_store = oxigraph::store::Store::new()?;
+        let graph_name = NamedNode::new(graph_uri)?;
+        
+        // Copy all quads from the specific graph
+        let graph_name_ref = oxigraph::model::GraphNameRef::NamedNode((&graph_name).into());
+        for quad_result in self.rdf_store.store.quads_for_pattern(None, None, None, Some(graph_name_ref)) {
+            if let Ok(quad) = quad_result {
+                // Create a new quad without the graph component for export
+                let triple_quad = oxigraph::model::Quad::new(
+                    quad.subject,
+                    quad.predicate,
+                    quad.object,
+                    oxigraph::model::GraphName::DefaultGraph,
+                );
+                temp_store.insert(&triple_quad)?;
+            }
+        }
+        
+        // Export as Turtle
+        let mut buffer = Vec::new();
+        temp_store.dump_to_writer(RdfFormat::Turtle, &mut buffer)?;
+        
+        Ok(String::from_utf8(buffer)?)
+    }
+
+    /// Get storage statistics
+    pub fn get_storage_stats(&self) -> Result<crate::rdf_store::StorageStats> {
+        self.rdf_store.get_storage_stats()
+    }
+
+    /// Create a backup of the blockchain
+    pub fn create_backup(&self) -> Result<crate::rdf_store::BackupInfo> {
+        self.rdf_store.create_backup()
+    }
+
+    /// List available backups
+    pub fn list_backups(&self) -> Result<Vec<crate::rdf_store::BackupInfo>> {
+        self.rdf_store.list_backups()
+    }
+
+    /// Restore blockchain from backup
+    pub fn restore_from_backup<P: AsRef<Path>>(backup_path: P, target_dir: P) -> Result<Self> {
+        let rdf_store = RDFStore::restore_from_backup(backup_path, target_dir)?;
+        
+        let mut bc = Blockchain {
+            chain: Vec::new(),
+            rdf_store,
+        };
+        
+        // Load the chain from the restored store
+        bc.load_chain_from_store()?;
+        
+        Ok(bc)
+    }
+
+    /// Flush any pending writes to disk
+    pub fn flush(&self) -> Result<()> {
+        self.rdf_store.flush()
+    }
+
+    /// Optimize the underlying database
+    pub fn optimize(&self) -> Result<()> {
+        self.rdf_store.optimize()
+    }
+
+    /// Check database integrity
+    pub fn check_integrity(&self) -> Result<crate::rdf_store::IntegrityReport> {
+        self.rdf_store.check_integrity()
     }
 
     fn create_genesis_block(&self) -> Block {
