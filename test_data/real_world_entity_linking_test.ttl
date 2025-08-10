@@ -1,0 +1,325 @@
+@prefix ex: <http://example.org/> .
+@prefix trace: <http://provchain.org/trace#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+
+#################################################################
+# Real-World Entity Linking Test Data
+# Purpose: Test entity resolution and deduplication capabilities
+# Contains intentional duplicates with various similarity patterns
+#################################################################
+
+# Scenario 1: Farmer Entity Duplicates with Different Naming Conventions
+ex:FarmerJohnSmith a trace:Farmer ;
+    rdfs:label "John Smith Dairy Farm" ;
+    trace:hasBatchID "JS001" ;
+    trace:hasLocation "Vermont, USA" ;
+    trace:hasPhone "+1-802-555-0123" ;
+    trace:hasEmail "john@smithdairy.com" .
+
+ex:JohnSmithFarm a trace:Farmer ;
+    rdfs:label "J. Smith Dairy" ;
+    trace:hasBatchID "JS001" ;
+    trace:hasLocation "VT, United States" ;
+    trace:hasPhone "802-555-0123" ;
+    trace:hasEmail "jsmith@smithdairy.com" .
+
+ex:SmithDairyFarm a trace:Farmer ;
+    rdfs:label "Smith Dairy Farm Inc." ;
+    trace:hasBatchID "JS-001" ;
+    trace:hasLocation "Vermont" ;
+    trace:hasPhone "(802) 555-0123" ;
+    trace:hasEmail "contact@smithdairyfarm.com" .
+
+# Should be resolved as the same entity through:
+# - Similar labels (Levenshtein distance, token matching)
+# - Same/similar batch IDs (exact match, normalized)
+# - Similar locations (token matching, geographic resolution)
+# - Same phone number (normalized format)
+
+# Scenario 2: Manufacturer Duplicates with Abbreviations and Legal Entities
+ex:UHTProcessingCorp a trace:Manufacturer ;
+    rdfs:label "UHT Processing Corporation" ;
+    trace:hasLocation "Wisconsin, USA" ;
+    trace:hasRegistrationNumber "WI-CORP-12345" ;
+    trace:hasCertification "FDA-APPROVED" .
+
+ex:UHTProcessingCorporation a trace:Manufacturer ;
+    rdfs:label "UHT Processing Corp." ;
+    trace:hasLocation "Wisconsin" ;
+    trace:hasRegistrationNumber "WI12345" ;
+    trace:hasCertification "FDA_APPROVED" .
+
+ex:UHTProcessingInc a trace:Manufacturer ;
+    rdfs:label "UHT Processing Inc" ;
+    trace:hasLocation "WI, USA" ;
+    trace:hasRegistrationNumber "WI-CORP-12345" ;
+    trace:hasCertification "FDA APPROVED" .
+
+# Should be resolved through:
+# - Corporate name variations (Corp, Corporation, Inc)
+# - Location abbreviations (Wisconsin vs WI)
+# - Registration number normalization
+# - Certification format variations
+
+# Scenario 3: Product Batch Duplicates with Different ID Formats
+ex:milkBatch2025001 a trace:ProductBatch ;
+    trace:hasBatchID "MB-2025-001" ;
+    trace:producedAt "2025-08-10T06:00:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:FarmerJohnSmith ;
+    trace:hasVolume "1000.0"^^xsd:decimal ;
+    trace:hasUnit "liters" .
+
+ex:milkBatch001_2025 a trace:ProductBatch ;
+    trace:hasBatchID "MB2025001" ;
+    trace:producedAt "2025-08-10T06:00:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:JohnSmithFarm ;
+    trace:hasVolume "1000"^^xsd:decimal ;
+    trace:hasUnit "L" .
+
+ex:batch_MB_001_2025 a trace:ProductBatch ;
+    trace:hasBatchID "MB.2025.001" ;
+    trace:producedAt "2025-08-10T06:00:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:SmithDairyFarm ;
+    trace:hasVolume "1000.00"^^xsd:decimal ;
+    trace:hasUnit "liters" .
+
+# Should be resolved through:
+# - Batch ID normalization (different separators, formats)
+# - Same production timestamp
+# - Same attributed farmer (after farmer entity linking)
+# - Same volume (different decimal precision)
+# - Unit normalization (liters vs L)
+
+# Scenario 4: Geographic Location Duplicates
+ex:location_vermont_1 a geo:Point ;
+    geo:lat "44.2601"^^xsd:decimal ;
+    geo:long "-72.5806"^^xsd:decimal ;
+    rdfs:label "Vermont Dairy Region" .
+
+ex:location_vt_1 a geo:Point ;
+    geo:lat "44.26"^^xsd:decimal ;
+    geo:long "-72.58"^^xsd:decimal ;
+    rdfs:label "VT Dairy Region" .
+
+ex:vermont_dairy_location a geo:Point ;
+    geo:lat "44.260100"^^xsd:decimal ;
+    geo:long "-72.580600"^^xsd:decimal ;
+    rdfs:label "Vermont, USA - Dairy Region" .
+
+# Should be resolved through:
+# - Geographic coordinate proximity (within tolerance)
+# - Location name variations (Vermont vs VT)
+# - Different decimal precision
+
+# Scenario 5: Complex Supply Chain with Multiple Duplicates
+ex:rawMilkBatch001 a trace:ProductBatch ;
+    trace:hasBatchID "RM-2025-001" ;
+    prov:wasAttributedTo ex:FarmerJohnSmith ;
+    trace:producedAt "2025-08-10T06:00:00Z"^^xsd:dateTime ;
+    trace:originLocation ex:location_vermont_1 .
+
+ex:rawMilkBatch002 a trace:ProductBatch ;
+    trace:hasBatchID "RM-2025-002" ;
+    prov:wasAttributedTo ex:JohnSmithFarm ;
+    trace:producedAt "2025-08-10T06:30:00Z"^^xsd:dateTime ;
+    trace:originLocation ex:location_vt_1 .
+
+# Processing activity using multiple inputs
+ex:blendingProcess001 a trace:ProcessingActivity ;
+    prov:used ex:rawMilkBatch001, ex:rawMilkBatch002 ;
+    prov:wasAssociatedWith ex:UHTProcessingCorp ;
+    trace:recordedAt "2025-08-10T10:00:00Z"^^xsd:dateTime ;
+    trace:hasCondition ex:processingCondition001 .
+
+ex:blendingActivity001 a trace:ProcessingActivity ;
+    prov:used ex:milkBatch2025001, ex:milkBatch001_2025 ;
+    prov:wasAssociatedWith ex:UHTProcessingCorporation ;
+    trace:recordedAt "2025-08-10T10:00:00Z"^^xsd:dateTime ;
+    trace:hasCondition ex:processingCondition001_duplicate .
+
+# Environmental conditions with duplicates
+ex:processingCondition001 a trace:EnvironmentalCondition ;
+    trace:hasTemperature "138.0"^^xsd:decimal ;
+    trace:hasHumidity "45.0"^^xsd:decimal ;
+    trace:hasConditionTimestamp "2025-08-10T10:00:00Z"^^xsd:dateTime ;
+    trace:environmentalSensor ex:tempSensor001 .
+
+ex:processingCondition001_duplicate a trace:EnvironmentalCondition ;
+    trace:hasTemperature "138"^^xsd:decimal ;
+    trace:hasHumidity "45"^^xsd:decimal ;
+    trace:hasConditionTimestamp "2025-08-10T10:00:00Z"^^xsd:dateTime ;
+    trace:environmentalSensor ex:temperatureSensor001 .
+
+# Sensor duplicates
+ex:tempSensor001 a trace:TraceAgent ;
+    rdfs:label "Temperature Sensor #001" ;
+    trace:hasSensorID "TS-001" ;
+    trace:hasModel "TempPro 3000" .
+
+ex:temperatureSensor001 a trace:TraceAgent ;
+    rdfs:label "Temp Sensor 001" ;
+    trace:hasSensorID "TS001" ;
+    trace:hasModel "TempPro-3000" .
+
+# Output batch derived from multiple inputs
+ex:blendedMilkBatch001 a trace:ProductBatch ;
+    trace:hasBatchID "BM-2025-001" ;
+    prov:wasGeneratedBy ex:blendingProcess001 ;
+    trace:lotDerivedFrom ex:rawMilkBatch001, ex:rawMilkBatch002 ;
+    trace:producedAt "2025-08-10T11:00:00Z"^^xsd:dateTime .
+
+ex:blendedMilkBatch001_alt a trace:ProductBatch ;
+    trace:hasBatchID "BM2025001" ;
+    prov:wasGeneratedBy ex:blendingActivity001 ;
+    trace:lotDerivedFrom ex:milkBatch2025001, ex:milkBatch001_2025 ;
+    trace:producedAt "2025-08-10T11:00:00Z"^^xsd:dateTime .
+
+# Scenario 6: Transport and Logistics Duplicates
+ex:ColdChainLogistics a trace:LogisticsProvider ;
+    rdfs:label "Cold Chain Logistics Ltd." ;
+    trace:hasLicenseNumber "CCL-2025-WI" ;
+    trace:hasFleetSize "50"^^xsd:integer .
+
+ex:ColdChainLogisticsLtd a trace:LogisticsProvider ;
+    rdfs:label "Cold Chain Logistics Limited" ;
+    trace:hasLicenseNumber "CCL2025WI" ;
+    trace:hasFleetSize "50"^^xsd:integer .
+
+ex:CCL_Logistics a trace:LogisticsProvider ;
+    rdfs:label "CCL Logistics" ;
+    trace:hasLicenseNumber "CCL-2025-WI" ;
+    trace:hasFleetSize "50"^^xsd:integer .
+
+# Transport activities with duplicates
+ex:transport001 a trace:TransportActivity ;
+    prov:used ex:blendedMilkBatch001 ;
+    prov:wasAssociatedWith ex:ColdChainLogistics ;
+    trace:recordedAt "2025-08-10T14:00:00Z"^^xsd:dateTime ;
+    trace:hasCondition ex:transportCondition001 .
+
+ex:transportActivity001 a trace:TransportActivity ;
+    prov:used ex:blendedMilkBatch001_alt ;
+    prov:wasAssociatedWith ex:ColdChainLogisticsLtd ;
+    trace:recordedAt "2025-08-10T14:00:00Z"^^xsd:dateTime ;
+    trace:hasCondition ex:transportCondition001_dup .
+
+# Transport conditions with slight variations
+ex:transportCondition001 a trace:EnvironmentalCondition ;
+    trace:hasTemperature "4.0"^^xsd:decimal ;
+    trace:hasHumidity "60.0"^^xsd:decimal ;
+    trace:hasConditionTimestamp "2025-08-10T14:00:00Z"^^xsd:dateTime .
+
+ex:transportCondition001_dup a trace:EnvironmentalCondition ;
+    trace:hasTemperature "4"^^xsd:decimal ;
+    trace:hasHumidity "60"^^xsd:decimal ;
+    trace:hasConditionTimestamp "2025-08-10T14:00:00Z"^^xsd:dateTime .
+
+# Scenario 7: Quality Control Duplicates
+ex:QualityControlLab a trace:TraceAgent ;
+    rdfs:label "Quality Control Laboratory" ;
+    trace:hasAccreditation "ISO-17025" ;
+    trace:hasLocation "Wisconsin Testing Facility" .
+
+ex:QCLaboratory a trace:TraceAgent ;
+    rdfs:label "QC Laboratory" ;
+    trace:hasAccreditation "ISO17025" ;
+    trace:hasLocation "WI Testing Facility" .
+
+ex:qualityCheck001 a trace:QualityCheck ;
+    prov:used ex:blendedMilkBatch001 ;
+    prov:wasAssociatedWith ex:QualityControlLab ;
+    trace:recordedAt "2025-08-10T15:00:00Z"^^xsd:dateTime ;
+    trace:hasResult "PASSED" ;
+    trace:hasTestType "MICROBIOLOGICAL" .
+
+ex:qualityTest001 a trace:QualityCheck ;
+    prov:used ex:blendedMilkBatch001_alt ;
+    prov:wasAssociatedWith ex:QCLaboratory ;
+    trace:recordedAt "2025-08-10T15:00:00Z"^^xsd:dateTime ;
+    trace:hasResult "PASS" ;
+    trace:hasTestType "MICRO" .
+
+# Scenario 8: Certification Duplicates
+ex:OrganicCert2025 a trace:Certificate ;
+    rdfs:label "Organic Certification 2025" ;
+    trace:hasCertificateNumber "USDA-ORG-2025-001" ;
+    trace:hasIssuer "USDA Organic Program" ;
+    trace:hasValidFrom "2025-01-01T00:00:00Z"^^xsd:dateTime ;
+    trace:hasValidUntil "2025-12-31T23:59:59Z"^^xsd:dateTime .
+
+ex:USDAOrganicCert2025 a trace:Certificate ;
+    rdfs:label "USDA Organic Certification 2025" ;
+    trace:hasCertificateNumber "USDA_ORG_2025_001" ;
+    trace:hasIssuer "United States Department of Agriculture - Organic Program" ;
+    trace:hasValidFrom "2025-01-01T00:00:00Z"^^xsd:dateTime ;
+    trace:hasValidUntil "2025-12-31T23:59:59Z"^^xsd:dateTime .
+
+# Link certifications to farmers
+ex:FarmerJohnSmith trace:hasCertificate ex:OrganicCert2025 .
+ex:JohnSmithFarm trace:hasCertificate ex:USDAOrganicCert2025 .
+
+# Scenario 9: Environmental Event Affecting Multiple Batches
+ex:heatWave2025 a trace:EnvironmentalCondition ;
+    rdfs:label "Heat Wave August 2025" ;
+    trace:hasTemperature "35.0"^^xsd:decimal ;
+    trace:hasHumidity "85.0"^^xsd:decimal ;
+    trace:hasConditionTimestamp "2025-08-10T14:00:00Z"^^xsd:dateTime ;
+    trace:affectedBatch ex:rawMilkBatch001, ex:rawMilkBatch002 .
+
+ex:augustHeatWave2025 a trace:EnvironmentalCondition ;
+    rdfs:label "August 2025 Heat Wave" ;
+    trace:hasTemperature "35"^^xsd:decimal ;
+    trace:hasHumidity "85"^^xsd:decimal ;
+    trace:hasConditionTimestamp "2025-08-10T14:00:00Z"^^xsd:dateTime ;
+    trace:affectedBatch ex:milkBatch2025001, ex:milkBatch001_2025 .
+
+# Scenario 10: Retailer and Distribution Duplicates
+ex:SupermarketChain a trace:Retailer ;
+    rdfs:label "Fresh Foods Supermarket Chain" ;
+    trace:hasStoreCount "150"^^xsd:integer ;
+    trace:hasRegion "Midwest USA" .
+
+ex:FreshFoodsSupermarkets a trace:Retailer ;
+    rdfs:label "Fresh Foods Supermarkets" ;
+    trace:hasStoreCount "150"^^xsd:integer ;
+    trace:hasRegion "Midwest United States" .
+
+ex:FreshFoodsChain a trace:Retailer ;
+    rdfs:label "Fresh Foods Chain" ;
+    trace:hasStoreCount "150"^^xsd:integer ;
+    trace:hasRegion "Midwest US" .
+
+# Final distribution activities
+ex:distribution001 a trace:TransportActivity ;
+    prov:used ex:blendedMilkBatch001 ;
+    prov:wasAssociatedWith ex:SupermarketChain ;
+    trace:recordedAt "2025-08-11T08:00:00Z"^^xsd:dateTime .
+
+ex:distributionActivity001 a trace:TransportActivity ;
+    prov:used ex:blendedMilkBatch001_alt ;
+    prov:wasAssociatedWith ex:FreshFoodsSupermarkets ;
+    trace:recordedAt "2025-08-11T08:00:00Z"^^xsd:dateTime .
+
+#################################################################
+# Expected Entity Resolution Results:
+# 
+# 1. Farmers: 3 entities → 1 canonical entity (John Smith Dairy Farm)
+# 2. Manufacturers: 3 entities → 1 canonical entity (UHT Processing Corporation)
+# 3. Product Batches: 6 entities → 3 canonical entities (2 raw milk, 1 blended)
+# 4. Locations: 3 entities → 1 canonical entity (Vermont Dairy Region)
+# 5. Processing Activities: 2 entities → 1 canonical entity
+# 6. Environmental Conditions: 4 entities → 2 canonical entities
+# 7. Sensors: 2 entities → 1 canonical entity
+# 8. Logistics Providers: 3 entities → 1 canonical entity
+# 9. Quality Control Labs: 2 entities → 1 canonical entity
+# 10. Quality Checks: 2 entities → 1 canonical entity
+# 11. Certificates: 2 entities → 1 canonical entity
+# 12. Environmental Events: 2 entities → 1 canonical entity
+# 13. Retailers: 3 entities → 1 canonical entity
+# 14. Distribution Activities: 2 entities → 1 canonical entity
+#
+# Total: 33 entities → ~14 canonical entities (58% reduction)
+#################################################################
