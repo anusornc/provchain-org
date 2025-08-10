@@ -85,3 +85,8 @@ async-trait = "0.1"       # Async traits
 [dev-dependencies]
 tempfile = "3.8"
 reqwest = { version = "0.11", features = ["json"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "simple_consensus_benchmarks"
+harness = false
