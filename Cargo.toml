@@ -65,6 +65,9 @@ handlebars = "4.0"         # Template engine for reports
 regex = "1.0"              # Pattern matching for NLP
 lazy_static = "1.4"        # Static initialization
 
+# Performance & Scalability dependencies for Phase 5
+num_cpus = "1.0"           # CPU core detection for thread pool sizing
+
 [dev-dependencies]
 tempfile = "3.8"
 reqwest = { version = "0.11", features = ["json"] }

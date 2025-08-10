@@ -6,3 +6,4 @@ pub mod network;
 pub mod web;
 pub mod knowledge_graph;
 pub mod analytics;
+pub mod performance;
