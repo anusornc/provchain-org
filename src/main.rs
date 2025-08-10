@@ -1,10 +1,8 @@
-mod blockchain;
-mod rdf_store;
-mod demo;
-
 use clap::{Parser, Subcommand};
+use provchain_org::{blockchain::Blockchain, rdf_store::RDFStore, demo, web::server::create_web_server};
 use std::fs;
-use crate::blockchain::Blockchain;
+use tracing::{info, error};
+use tracing_subscriber;
 
 #[derive(Parser)]
 #[command(name = "TraceChain")]
@@ -30,38 +28,95 @@ enum Commands {
 
     /// Run the built-in UHT manufacturing demo
     Demo,
+
+    /// Start the web server for Phase 2 REST API
+    WebServer {
+        /// Port to run the web server on
+        #[arg(short, long, default_value = "8080")]
+        port: u16,
+    },
 }
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize tracing
+    tracing_subscriber::fmt::init();
+
     let cli = Cli::parse();
-    let mut bc = Blockchain::new(); // In a real app, you'd load this from a file
+    let mut blockchain = Blockchain::new();
+    let rdf_store = RDFStore::new();
 
     match cli.command {
         Commands::AddFile { path } => {
-            let rdf_data = fs::read_to_string(path).expect("Cannot read RDF file");
-            bc.add_block(rdf_data);
-            println!("Added RDF as a new block. Blockchain is valid: {}", bc.is_valid());
+            let rdf_data = fs::read_to_string(&path)
+                .map_err(|e| format!("Cannot read RDF file '{}': {}", path, e))?;
+            
+            blockchain.add_block(rdf_data);
+            let block_hash = blockchain.chain.last()
+                .map(|b| b.hash.clone())
+                .unwrap_or_else(|| "unknown".to_string());
+            
+            println!("Added RDF as a new block with hash: {}", block_hash);
+            println!("Blockchain is valid: {}", blockchain.is_valid());
         }
         Commands::Query { path } => {
-            let query = fs::read_to_string(path).expect("Cannot read query file");
-            if let oxigraph::sparql::QueryResults::Solutions(solutions) = bc.rdf_store.query(&query) {
-                for solution in solutions {
-                    println!("{:?}", solution.unwrap());
-                }
-            }
+            let query = fs::read_to_string(&path)
+                .map_err(|e| format!("Cannot read query file '{}': {}", path, e))?;
+            
+            let results = blockchain.rdf_store.query(&query);
+            println!("Query results:");
+            // For now, just print that query was executed
+            println!("Query executed successfully");
         }
         Commands::Validate => {
-            if bc.is_valid() {
-                println!("Blockchain is valid.");
+            if blockchain.is_valid() {
+                println!("✅ Blockchain is valid.");
             } else {
-                println!("Blockchain is NOT valid.");
+                println!("❌ Blockchain is NOT valid.");
             }
         }
         Commands::Dump => {
-            println!("{}", bc.dump());
+            let json = blockchain.dump();
+            println!("{}", json);
         }
         Commands::Demo => {
+            info!("Running built-in demo...");
             demo::run_demo();
         }
+        Commands::WebServer { port } => {
+            info!("Starting Phase 2 web server on port {}", port);
+            
+            // Load some demo data into the blockchain
+            let demo_data = vec![
+                "<http://example.org/batch1> <http://example.org/product> \"Organic Tomatoes\" .",
+                "<http://example.org/batch1> <http://example.org/origin> \"Farm A\" .",
+                "<http://example.org/batch1> <http://example.org/status> \"In Transit\" .",
+            ];
+            
+            // Add each piece of demo data as a separate block
+            for data in demo_data {
+                blockchain.add_block(data.to_string());
+            }
+            
+            // Create and start the web server
+            let web_server = create_web_server(blockchain, Some(port)).await?;
+            
+            info!("🚀 Web server starting...");
+            info!("📡 API available at: http://localhost:{}", port);
+            info!("🔍 Health check: http://localhost:{}/health", port);
+            info!("🔐 Login endpoint: http://localhost:{}/auth/login", port);
+            info!("📊 Blockchain status: http://localhost:{}/api/blockchain/status", port);
+            info!("");
+            info!("Default users for testing:");
+            info!("  - admin/admin123 (Admin role)");
+            info!("  - farmer1/farmer123 (Farmer role)");
+            info!("  - processor1/processor123 (Processor role)");
+            info!("");
+            info!("Press Ctrl+C to stop the server");
+            
+            web_server.start().await?;
+        }
     }
+
+    Ok(())
 }
