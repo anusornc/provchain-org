@@ -1,6 +1,8 @@
 pub mod blockchain;
 pub mod rdf_store;
+pub mod config;
 pub mod demo;
 pub mod network;
-pub mod config;
 pub mod web;
+pub mod knowledge_graph;
+pub mod analytics;

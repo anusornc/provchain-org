@@ -56,6 +56,15 @@ askama = { version = "0.12", features = ["with-axum"] }
 # Static file serving
 tower-serve-static = "0.1"
 
+# Knowledge Graph & Analytics dependencies for Phase 3
+petgraph = "0.6"           # Graph algorithms
+ndarray = "0.15"           # Numerical computing
+geo = "0.26"               # Geographic computations
+plotters = "0.3"           # Chart generation
+handlebars = "4.0"         # Template engine for reports
+regex = "1.0"              # Pattern matching for NLP
+lazy_static = "1.4"        # Static initialization
+
 [dev-dependencies]
 tempfile = "3.8"
 reqwest = { version = "0.11", features = ["json"] }
