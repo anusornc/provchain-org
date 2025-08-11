@@ -1,0 +1,95 @@
+@startuml rdf-canonicalization
+!theme carbon-gray
+title RDF Canonicalization Algorithm for Blockchain Integrity
+caption Figure 3: Novel RDF canonicalization process ensuring deterministic hashing while preserving semantic equivalence
+
+start
+:Input: RDF Graph\n(Turtle format);
+
+:Parse RDF Triples\ninto Subject-Predicate-Object;
+
+:Identify Blank Nodes\nin Subject and Object positions;
+
+if (Blank Nodes Present?) then (yes)
+  partition "Blank Node Canonicalization" {
+    :Create Blank Node Map\nblank_nodes: HashMap<BlankNode, String>;
+    
+    :Apply Magic_S Algorithm\nfor Subject blank nodes;
+    note right
+      Magic_S replaces blank nodes in 
+      subject position with deterministic
+      placeholder: "_:magic_s_N"
+    end note
+    
+    :Apply Magic_O Algorithm\nfor Object blank nodes;
+    note right
+      Magic_O replaces blank nodes in 
+      object position with deterministic
+      placeholder: "_:magic_o_N"
+    end note
+    
+    :Generate Canonical Blank Node IDs\nbased on graph structure;
+  }
+else (no)
+  :No blank node processing needed;
+endif
+
+:Sort Triples by\nSubject → Predicate → Object\n(lexicographic order);
+
+:Generate Canonical N-Triples\nrepresentation;
+
+:Apply SHA-256 Hash\nto canonical form;
+
+:Output: Deterministic Hash\n(blockchain integrity);
+
+stop
+
+note bottom
+  **Key Innovation**: Magic_S/Magic_O algorithm ensures
+  that semantically equivalent RDF graphs produce
+  identical hashes, enabling blockchain integrity
+  while preserving RDF semantic equivalence.
+end note
+
+' Side process for complex blank node handling
+partition "Complex Blank Node Scenarios" {
+  start
+  :Nested Blank Nodes\nDetected;
+  
+  :Build Dependency Graph\nof blank node relationships;
+  
+  :Apply Topological Sort\nto determine canonical order;
+  
+  :Assign Sequential IDs\nbased on sorted order;
+  
+  :Replace with Magic placeholders\nmaintaining relationships;
+  stop
+}
+
+' Example transformation
+package "Example Transformation" {
+  note as N1
+    **Input RDF:**
+    ```turtle
+    _:b1 <http://example.org/name> "John" .
+    _:b1 <http://example.org/age> "30" .
+    _:b2 <http://example.org/knows> _:b1 .
+    ```
+    
+    **After Canonicalization:**
+    ```turtle
+    _:magic_s_1 <http://example.org/age> "30" .
+    _:magic_s_1 <http://example.org/name> "John" .
+    _:magic_s_2 <http://example.org/knows> _:magic_o_1 .
+    ```
+    
+    **Hash Input (N-Triples):**
+    ```
+    _:magic_s_1 <http://example.org/age> "30" .
+    _:magic_s_1 <http://example.org/name> "John" .
+    _:magic_s_2 <http://example.org/knows> _:magic_o_1 .
+    ```
+  end note
+}
+
+@enduml

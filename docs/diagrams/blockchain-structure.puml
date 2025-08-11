@@ -1,0 +1,152 @@
+@startuml blockchain-structure
+!theme blueprint
+title RDF-Native Blockchain Data Structure
+caption Figure 2: Blockchain structure showing RDF graph integration and named graph organization
+
+class Block {
+  +index: u64
+  +timestamp: String
+  +data: String (RDF Turtle)
+  +previous_hash: String
+  +hash: String
+  +graph_uri: String
+  --
+  +calculate_hash(): String
+  +is_valid(): bool
+  +get_rdf_data(): String
+  +validate_rdf(): Result<(), Error>
+}
+
+class RDFStore {
+  +store: Oxigraph
+  +graphs: HashMap<String, NamedGraph>
+  +ontology_graph: String
+  --
+  +add_graph(uri: String, data: String): Result<(), Error>
+  +query(sparql: String): QueryResults
+  +canonicalize(rdf: String): String
+  +validate_against_ontology(data: String): bool
+  +get_graph_metadata(uri: String): GraphMetadata
+}
+
+class Blockchain {
+  +chain: Vec<Block>
+  +rdf_store: RDFStore
+  +ontology: Ontology
+  +genesis_hash: String
+  --
+  +add_block(data: String): Result<Block, Error>
+  +is_valid(): bool
+  +get_block(index: u64): Option<Block>
+  +query_blockchain(sparql: String): QueryResults
+  +validate_chain(): ValidationResult
+}
+
+class NamedGraph {
+  +uri: String
+  +triples: Vec<Triple>
+  +metadata: GraphMetadata
+  +block_index: u64
+  --
+  +add_triple(triple: Triple): Result<(), Error>
+  +get_canonical_form(): String
+  +validate_structure(): bool
+}
+
+class Triple {
+  +subject: Term
+  +predicate: Term
+  +object: Term
+  --
+  +to_turtle(): String
+  +is_valid(): bool
+  +get_canonical_form(): String
+}
+
+class GraphMetadata {
+  +created_at: DateTime
+  +block_index: u64
+  +triple_count: usize
+  +hash: String
+  +validation_status: ValidationStatus
+  --
+  +update_metadata(): void
+  +get_provenance(): ProvenanceInfo
+}
+
+class Ontology {
+  +classes: Vec<OntologyClass>
+  +properties: Vec<OntologyProperty>
+  +graph_uri: String
+  --
+  +validate_instance(data: String): ValidationResult
+  +get_class_definition(class_uri: String): Option<OntologyClass>
+  +check_property_constraints(property: String, value: String): bool
+}
+
+' Relationships
+Blockchain *-- Block : contains
+Blockchain *-- RDFStore : uses
+Blockchain *-- Ontology : validates with
+Block --> NamedGraph : references
+RDFStore *-- NamedGraph : stores
+NamedGraph *-- Triple : contains
+NamedGraph --> GraphMetadata : has
+RDFStore --> Ontology : validates against
+
+' Composition relationships
+Block ||--|| NamedGraph : "1:1\nblock per graph"
+NamedGraph ||--o{ Triple : "1:many\ntriples per graph"
+
+' Data flow
+Block : stores RDF data
+NamedGraph : organizes triples
+RDFStore : manages graphs
+Ontology : validates semantics
+
+note right of Block
+  Each block contains RDF data
+  in Turtle format, stored as
+  a named graph with unique URI:
+  http://provchain.org/block/{index}
+end note
+
+note bottom of RDFStore
+  Oxigraph triplestore provides:
+  • SPARQL 1.1 query support
+  • Named graph management
+  • RDF canonicalization
+  • Cross-graph queries
+end note
+
+note left of Ontology
+  Traceability ontology extends PROV-O:
+  • Supply chain entities
+  • Environmental conditions
+  • Agent classifications
+  • Validation rules
+end note
+
+package "Example Block Structure" {
+  object "Block #1" as B1 {
+    index = 1
+    timestamp = "2025-08-08T10:00:00Z"
+    data = "@prefix trace: <http://provchain.org/trace#> ..."
+    previous_hash = "0x1a2b3c..."
+    hash = "0x4d5e6f..."
+    graph_uri = "http://provchain.org/block/1"
+  }
+  
+  object "Named Graph" as NG1 {
+    uri = "http://provchain.org/block/1"
+    triples = [
+      "ex:batch1 a trace:ProductBatch",
+      "ex:batch1 trace:hasBatchID 'MB001'",
+      "ex:batch1 prov:wasAttributedTo ex:farmer1"
+    ]
+  }
+}
+
+B1 --> NG1 : references
+
+@enduml

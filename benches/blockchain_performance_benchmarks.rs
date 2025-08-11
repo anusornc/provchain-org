@@ -306,7 +306,7 @@ trace:location{} a trace:GeographicLocation ;
 trace:product{} a trace:Product ;
     trace:hasWeight "{}" ;
     trace:hasQuality "Grade A" .
-"#, i, i, i % 100, i, i % 100, i, 
+"#, i, i, i, i, i, i, i, i, i, 
     40.0 + (i as f64 % 10.0), -74.0 + (i as f64 % 10.0), 
     i, (i % 100) + 50)
     }).collect()
@@ -339,7 +339,7 @@ _:blank{} ex:nestedProperty "nested value {}" ;
 ex:collection{} rdf:type rdf:Bag ;
     rdf:_1 ex:entity{} ;
     rdf:_2 "literal value {}" .
-"#, i, i, i, (i + 1) % size, i, (i + 1) % size, i, i, i)
+"#, i, i, i, (i + 1) % size, i, (i + 1) % size, i, i, i, i)
     }).collect()
 }
 

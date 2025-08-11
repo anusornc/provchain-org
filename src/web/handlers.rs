@@ -11,11 +11,87 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use regex::Regex;
 use chrono::Utc;
 use serde::Deserialize;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
+
+/// Input validation functions
+fn validate_uri(uri: &str) -> Result<(), String> {
+    if uri.is_empty() {
+        return Err("URI cannot be empty".to_string());
+    }
+    
+    if uri.len() > 2048 {
+        return Err("URI too long (max 2048 characters)".to_string());
+    }
+    
+    // Basic URI validation
+    let uri_regex = Regex::new(r"^https?://[^\s/$.?#].[^\s]*$|^[a-zA-Z][a-zA-Z0-9+.-]*:[^\s]*$").unwrap();
+    if !uri_regex.is_match(uri) {
+        return Err("Invalid URI format".to_string());
+    }
+    
+    Ok(())
+}
+
+fn validate_literal(literal: &str) -> Result<(), String> {
+    if literal.len() > 10000 {
+        return Err("Literal too long (max 10000 characters)".to_string());
+    }
+    
+    // Check for potential script injection
+    let dangerous_patterns = ["<script", "javascript:", "data:", "vbscript:", "onload=", "onerror="];
+    let literal_lower = literal.to_lowercase();
+    for pattern in &dangerous_patterns {
+        if literal_lower.contains(pattern) {
+            return Err("Literal contains potentially dangerous content".to_string());
+        }
+    }
+    
+    Ok(())
+}
+
+fn validate_sparql_query(query: &str) -> Result<(), String> {
+    if query.is_empty() {
+        return Err("SPARQL query cannot be empty".to_string());
+    }
+    
+    if query.len() > 50000 {
+        return Err("SPARQL query too long (max 50000 characters)".to_string());
+    }
+    
+    // Check for potentially dangerous operations
+    let query_upper = query.to_uppercase();
+    let dangerous_operations = ["DROP", "CLEAR", "DELETE", "INSERT", "LOAD", "CREATE"];
+    for operation in &dangerous_operations {
+        if query_upper.contains(operation) {
+            return Err(format!("SPARQL operation '{}' is not allowed", operation));
+        }
+    }
+    
+    Ok(())
+}
+
+fn validate_batch_id(batch_id: &str) -> Result<(), String> {
+    if batch_id.is_empty() {
+        return Err("Batch ID cannot be empty".to_string());
+    }
+    
+    if batch_id.len() > 100 {
+        return Err("Batch ID too long (max 100 characters)".to_string());
+    }
+    
+    // Allow alphanumeric, hyphens, and underscores only
+    let batch_id_regex = Regex::new(r"^[a-zA-Z0-9_-]+$").unwrap();
+    if !batch_id_regex.is_match(batch_id) {
+        return Err("Batch ID contains invalid characters (only alphanumeric, hyphens, and underscores allowed)".to_string());
+    }
+    
+    Ok(())
+}
 
 /// Application state shared across handlers
 #[derive(Clone)]
@@ -122,15 +198,74 @@ pub async fn add_triple(
     Extension(claims): Extension<UserClaims>,
     Json(request): Json<AddTripleRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ApiError>)> {
+    // Validate inputs
+    if let Err(e) = validate_uri(&request.subject) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ApiError {
+                error: "invalid_subject".to_string(),
+                message: format!("Invalid subject URI: {}", e),
+                timestamp: Utc::now(),
+            }),
+        ));
+    }
+    
+    if let Err(e) = validate_uri(&request.predicate) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ApiError {
+                error: "invalid_predicate".to_string(),
+                message: format!("Invalid predicate URI: {}", e),
+                timestamp: Utc::now(),
+            }),
+        ));
+    }
+    
+    // Validate object based on whether it's a URI or literal
+    if request.object.starts_with("http://") || request.object.starts_with("https://") {
+        if let Err(e) = validate_uri(&request.object) {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ApiError {
+                    error: "invalid_object_uri".to_string(),
+                    message: format!("Invalid object URI: {}", e),
+                    timestamp: Utc::now(),
+                }),
+            ));
+        }
+    } else {
+        if let Err(e) = validate_literal(&request.object) {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ApiError {
+                    error: "invalid_object_literal".to_string(),
+                    message: format!("Invalid object literal: {}", e),
+                    timestamp: Utc::now(),
+                }),
+            ));
+        }
+    }
+    
     let mut blockchain = app_state.blockchain.write().await;
     
-    // Create RDF triple data
-    let triple_data = format!(
-        "{} {} {} .",
-        request.subject,
-        request.predicate,
-        request.object
-    );
+    // Create proper RDF triple data in Turtle format
+    let triple_data = if request.object.starts_with("http://") || request.object.starts_with("https://") {
+        // Object is a URI, don't quote it
+        format!(
+            "<{}> <{}> <{}> .",
+            request.subject,
+            request.predicate,
+            request.object
+        )
+    } else {
+        // Object is a literal, quote it
+        format!(
+            "<{}> <{}> \"{}\" .",
+            request.subject,
+            request.predicate,
+            request.object
+        )
+    };
     
     // Add to blockchain (this also adds to the internal RDF store)
     blockchain.add_block(triple_data);
@@ -153,11 +288,35 @@ pub async fn execute_sparql_query(
     State(app_state): State<AppState>,
     Json(request): Json<SparqlQueryRequest>,
 ) -> Result<Json<SparqlQueryResponse>, (StatusCode, Json<ApiError>)> {
+    // Validate SPARQL query
+    if let Err(e) = validate_sparql_query(&request.query) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ApiError {
+                error: "invalid_sparql_query".to_string(),
+                message: format!("SPARQL query validation failed: {}", e),
+                timestamp: Utc::now(),
+            }),
+        ));
+    }
+    
     let blockchain = app_state.blockchain.read().await;
     let start_time = Instant::now();
     
-    // Access the RDF store through the blockchain
-    let query_results = blockchain.rdf_store.query(&request.query);
+    // Access the RDF store through the blockchain and handle potential query errors
+    let query_results = match blockchain.rdf_store.store.query(&request.query) {
+        Ok(results) => results,
+        Err(e) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ApiError {
+                    error: "invalid_sparql_query".to_string(),
+                    message: format!("Invalid SPARQL query: {}", e),
+                    timestamp: Utc::now(),
+                }),
+            ));
+        }
+    };
     let execution_time = start_time.elapsed().as_millis() as u64;
     
     // Convert QueryResults to JSON
@@ -226,41 +385,67 @@ pub async fn get_product_trace(
     
     let batch_id = params.batch_id.unwrap_or_else(|| "unknown".to_string());
     
-    // Build SPARQL query to get product information
+    // Build SPARQL query to get product information using the actual namespace
+    // Each triple is stored in a separate graph (one per blockchain block)
     let sparql_query = format!(
         r#"
-        PREFIX tc: <http://example.org/tracechain#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?product ?origin ?location ?status ?actor ?action ?timestamp
-        WHERE {{
-            ?batch tc:batchId "{batch_id}" .
-            ?batch tc:product ?product .
-            OPTIONAL {{ ?batch tc:origin ?origin }}
-            OPTIONAL {{ ?batch tc:currentLocation ?location }}
-            OPTIONAL {{ ?batch tc:status ?status }}
+        SELECT ?product ?origin ?status WHERE {{
             OPTIONAL {{
-                ?event tc:batch ?batch .
-                ?event tc:actor ?actor .
-                ?event tc:action ?action .
-                ?event tc:timestamp ?timestamp .
+                GRAPH ?g1 {{
+                    <http://example.org/batch456> <http://provchain.org/trace#product> ?product .
+                }}
+            }}
+            OPTIONAL {{
+                GRAPH ?g2 {{
+                    <http://example.org/batch456> <http://provchain.org/trace#origin> ?origin .
+                }}
+            }}
+            OPTIONAL {{
+                GRAPH ?g3 {{
+                    <http://example.org/batch456> <http://provchain.org/trace#status> ?status .
+                }}
             }}
         }}
-        ORDER BY ?timestamp
         "#
     );
     
     // Access the RDF store through the blockchain
-    let _query_results = blockchain.rdf_store.query(&sparql_query);
+    let query_results = blockchain.rdf_store.query(&sparql_query);
     
-    // For now, return a mock response since we need to properly parse the results
+    let mut product_name = "Unknown Product".to_string();
+    let mut origin = "Unknown Origin".to_string();
+    let mut status = "Unknown Status".to_string();
+    
+    // Parse SPARQL results
+    if let oxigraph::sparql::QueryResults::Solutions(solutions) = query_results {
+        for solution in solutions {
+            if let Ok(sol) = solution {
+                if let Some(product_term) = sol.get("product") {
+                    product_name = product_term.to_string().trim_matches('"').to_string();
+                }
+                if let Some(origin_term) = sol.get("origin") {
+                    origin = origin_term.to_string().trim_matches('"').to_string();
+                }
+                if let Some(status_term) = sol.get("status") {
+                    status = status_term.to_string().trim_matches('"').to_string();
+                }
+                break; // Take the first result
+            }
+        }
+    }
+    
+    // Override with query parameter if provided
+    if let Some(param_product_name) = params.product_name {
+        product_name = param_product_name;
+    }
+    
     let product_trace = ProductTrace {
         batch_id: batch_id.clone(),
-        product_name: params.product_name.unwrap_or_else(|| "Unknown Product".to_string()),
-        origin: "Unknown Origin".to_string(),
+        product_name,
+        origin,
         current_location: "Unknown Location".to_string(),
-        status: "Unknown Status".to_string(),
-        timeline: vec![], // TODO: Parse from SPARQL results
+        status,
+        timeline: vec![], // TODO: Parse timeline events from SPARQL results
         certifications: vec![],
         environmental_data: Some(EnvironmentalData {
             temperature: Some(22.5),

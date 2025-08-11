@@ -183,7 +183,7 @@ ex:child{} ex:parentOf ex:entity{} .
 ex:child{} ex:siblingOf ex:child{} .
 _:blank{} ex:describes ex:entity{} .
 _:blank{} ex:hasValue "complex value {}" .
-"#, i, i, i, (i + 1) % count, i, (i + 2) % count, (i + 1) % count, (i + 2) % count, i, i, i)
+"#, i, i, i, (i + 1) % count, i, (i + 2) % count, (i + 1) % count, (i + 2) % count, i, i, i, i, i)
     }).collect()
 }
 
@@ -202,7 +202,7 @@ _:comp{} ex:hasProperty "prop{}" .
 _:comp{} ex:hasProperty "prop{}" .
 ex:named{} ex:references _:root{} .
 ex:named{} ex:hasComplexity "high" .
-"#, i, i, i, (i + 1) % count, i, (i + 1) % count, (i + 2) % count, (i + 1) % count, (i + 2) % count, i, (i + 1) % count, i, i)
+"#, i, i, i, (i + 1) % count, i, (i + 1) % count, (i + 2) % count, (i + 1) % count, (i + 2) % count, i, (i + 1) % count, i, i, i, i, i)
     }).collect()
 }
 
@@ -246,7 +246,7 @@ ex:subject{} rdf:type ex:Type .
 ex:subject{} ex:property "value{}" .
 ex:subject{} ex:relatedTo ex:object{} .
 ex:object{} ex:backRef ex:subject{} .
-"#, i, i, (i + 1) % count, (i + 1) % count, i)
+"#, i, i, i, i, (i + 1) % count, (i + 1) % count, i)
     }).collect()
 }
 
@@ -258,7 +258,7 @@ fn generate_simple_blank_nodes(count: usize) -> Vec<String> {
 ex:subject{} ex:hasBlankProperty _:blank{} .
 _:blank{} ex:value "blank value {}" .
 _:blank{} ex:type "BlankType" .
-"#, i, i, i)
+"#, i, i, i, i, i)
     }).collect()
 }
 
@@ -272,7 +272,7 @@ _:child{} ex:hasGrandchild _:grandchild{} .
 _:grandchild{} ex:hasValue "nested{}" .
 _:child{} ex:siblingOf _:sibling{} .
 _:sibling{} ex:backToRoot ex:root{} .
-"#, i, i, i, i, i, i)
+"#, i, i, i, i, i, i, i, i, i, i)
     }).collect()
 }
 
@@ -286,7 +286,7 @@ _:b{} ex:pointsTo _:c{} .
 _:c{} ex:pointsTo _:a{} .
 _:a{} ex:hasValue "circular{}" .
 ex:anchor{} ex:references _:a{} .
-"#, i, i, i, i, i, i, i, i, i)
+"#, i, i, i, i, i, i, i, i, i, i)
     }).collect()
 }
 
@@ -305,7 +305,7 @@ _:a2_{} ex:connectsTo _:b2_{} .
 
 ex:container{} ex:contains _:struct1_{} .
 ex:container{} ex:contains _:struct2_{} .
-"#, i, i, i, i, i, i, i, i, i, i, i, i, i, i)
+"#, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i)
     }).collect()
 }
 
@@ -443,7 +443,7 @@ trace:result{} a prov:Entity ;
 
 _:provenance{} prov:hadPrimarySource trace:entity{} ;
     prov:wasQuotedFrom trace:source{} .
-"#, i, i % 24, (i + 1) % 24, i, i, i, i, i, i, i, i, i, i, i)
+"#, i, i % 24, (i + 1) % 24, i, i, i, i, i, i, i, i, i, i, i, i)
     }).collect()
 }
 

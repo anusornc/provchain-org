@@ -1,0 +1,197 @@
+@startuml network-topology
+!theme cyborg-outline
+title Distributed P2P Network Architecture
+caption Figure 5: Peer-to-peer network topology showing WebSocket-based communication and consensus mechanism
+
+!define AUTHORITY_COLOR #e74c3c
+!define PEER_COLOR #3498db
+!define DISCOVERY_COLOR #f39c12
+
+cloud "Internet" as Internet {
+  node "Discovery Service\n(Bootstrap)" as Discovery #f39c12 {
+    [Peer Registry]
+    [Network Topology]
+    [Health Monitoring]
+  }
+}
+
+node "Authority Node\n(Consensus Leader)" as AuthNode #e74c3c {
+  package "Core Services" {
+    [Blockchain Engine] as AuthBC
+    [RDF Store] as AuthRDF
+    [Consensus Manager] as AuthCons
+  }
+  
+  package "Network Layer" {
+    [P2P Server] as AuthP2P
+    [Message Router] as AuthRouter
+    [Connection Pool] as AuthPool
+  }
+  
+  package "API Layer" {
+    [REST API] as AuthAPI
+    [WebSocket Server] as AuthWS
+  }
+}
+
+node "Peer Node 1\n(Regular Node)" as Peer1 #3498db {
+  package "Core Services" {
+    [Blockchain Copy] as P1BC
+    [RDF Store] as P1RDF
+    [Sync Manager] as P1Sync
+  }
+  
+  package "Network Layer" {
+    [P2P Client] as P1P2P
+    [Message Handler] as P1Handler
+  }
+}
+
+node "Peer Node 2\n(Regular Node)" as Peer2 #3498db {
+  package "Core Services" {
+    [Blockchain Copy] as P2BC
+    [RDF Store] as P2RDF
+    [Sync Manager] as P2Sync
+  }
+  
+  package "Network Layer" {
+    [P2P Client] as P2P2P
+    [Message Handler] as P2Handler
+  }
+}
+
+node "Peer Node N\n(Regular Node)" as PeerN #3498db {
+  package "Core Services" {
+    [Blockchain Copy] as PNBC
+    [RDF Store] as PNRDF
+    [Sync Manager] as PNSync
+  }
+  
+  package "Network Layer" {
+    [P2P Client] as PNP2P
+    [Message Handler] as PNHandler
+  }
+}
+
+' Network connections
+AuthNode <--> Discovery : Register Authority\nHealth Reports
+Peer1 <--> Discovery : Peer Discovery\nBootstrap
+Peer2 <--> Discovery : Peer Discovery\nBootstrap
+PeerN <--> Discovery : Peer Discovery\nBootstrap
+
+AuthNode <--> Peer1 : WebSocket\nBlock Sync\nConsensus
+AuthNode <--> Peer2 : WebSocket\nBlock Sync\nConsensus
+AuthNode <--> PeerN : WebSocket\nBlock Sync\nConsensus
+
+Peer1 <--> Peer2 : Peer-to-Peer\nData Exchange
+Peer2 <--> PeerN : Peer-to-Peer\nData Exchange
+Peer1 <--> PeerN : Peer-to-Peer\nData Exchange
+
+' Message flow examples
+package "Message Protocol" {
+  object "Block Announcement" as BlockMsg {
+    type = "BlockAnnouncement"
+    block_index = 42
+    block_hash = "0x1a2b3c..."
+    graph_uri = "http://provchain.org/block/42"
+    timestamp = "2025-08-08T10:00:00Z"
+  }
+  
+  object "Peer Discovery" as PeerMsg {
+    type = "PeerDiscovery"
+    node_id = "uuid-1234"
+    listen_port = 8080
+    network_id = "provchain-org-default"
+    capabilities = ["blockchain", "sparql"]
+  }
+  
+  object "SPARQL Query" as QueryMsg {
+    type = "SPARQLQuery"
+    query = "SELECT ?batch WHERE { ?batch a trace:ProductBatch }"
+    requester_id = "uuid-5678"
+    cross_node = true
+  }
+}
+
+' Configuration examples
+package "Network Configuration" {
+  note as ConfigNote
+    **config.toml**
+    ```toml
+    [network]
+    network_id = "provchain-org-default"
+    listen_port = 8080
+    bind_address = "0.0.0.0"
+    known_peers = ["127.0.0.1:8081", "127.0.0.1:8082"]
+    max_peers = 50
+    connection_timeout = 30
+    ping_interval = 30
+    
+    [consensus]
+    is_authority = false
+    authority_keys = ["pubkey1", "pubkey2"]
+    block_interval = 10
+    max_block_size = 1048576
+    ```
+  end note
+}
+
+' Consensus flow
+package "Consensus Mechanism (Proof-of-Authority)" {
+  start
+  :New Transaction\nReceived;
+  
+  if (Node is Authority?) then (yes)
+    :Validate Transaction\nagainst Ontology;
+    :Create New Block;
+    :Sign Block with\nAuthority Key;
+    :Broadcast Block\nto All Peers;
+  else (no)
+    :Forward Transaction\nto Authority Node;
+  endif
+  
+  :Peers Validate\nBlock Signature;
+  :Update Local\nBlockchain Copy;
+  :Sync RDF Store;
+  stop
+}
+
+note bottom of AuthNode
+  **Authority Node Responsibilities:**
+  • Block creation and validation
+  • Consensus coordination
+  • Network health monitoring
+  • Transaction ordering
+  • Digital signature verification
+end note
+
+note bottom of Peer1
+  **Regular Node Capabilities:**
+  • Blockchain synchronization
+  • Local RDF store maintenance
+  • SPARQL query processing
+  • Peer-to-peer communication
+  • Transaction forwarding
+end note
+
+note bottom of Discovery
+  **Discovery Service Features:**
+  • Bootstrap node registry
+  • Network topology mapping
+  • Health monitoring
+  • Load balancing
+  • Network partitioning detection
+end note
+
+' Performance metrics
+package "Network Metrics" {
+  object "Performance Indicators" as Metrics {
+    block_propagation_time = "< 2 seconds"
+    consensus_finality = "< 10 seconds"
+    sparql_query_latency = "< 500ms"
+    peer_discovery_time = "< 5 seconds"
+    network_throughput = "100 tx/sec"
+  }
+}
+
+@enduml

@@ -461,7 +461,7 @@ trace:farmer{} a trace:Farmer ;
 trace:location{} a trace:GeographicLocation ;
     trace:hasLatitude "{}"^^xsd:decimal ;
     trace:hasLongitude "{}"^^xsd:decimal .
-"#, i, i, i % 100, i % 100, i % 100, i, 40.0 + (i as f64 % 10.0), -74.0 + (i as f64 % 10.0))
+"#, i, i, i, i, i, i, i, 40.0 + (i as f64 % 10.0), -74.0 + (i as f64 % 10.0))
     }).collect()
 }
 

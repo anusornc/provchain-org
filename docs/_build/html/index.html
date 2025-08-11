@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProvChainOrg Documentation &mdash; ProvChainOrg 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=2bc703e7" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=01f34227"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Project Overview" href="overview/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            ProvChainOrg
+          </a>
+              <div class="version">
+                0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview/index.html">Project Overview</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">ProvChainOrg</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ProvChainOrg Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="provchainorg-documentation">
+<h1>ProvChainOrg Documentation<a class="headerlink" href="#provchainorg-documentation" title="Link to this heading"></a></h1>
+<img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-blue.svg" /><img alt="Rust 1.70+" src="https://img.shields.io/badge/rust-1.70+-orange.svg" /><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-green.svg" /><p><strong>ProvChainOrg</strong> is a production-ready implementation of the GraphChain concept for supply chain traceability using RDF graphs and SPARQL queries. This system combines blockchain security with semantic web technologies to create a distributed ledger with formal ontology support.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documentation is generated from the source code and provides comprehensive coverage of the system architecture, APIs, and usage patterns.</p>
+</div>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clone the repository</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/anusornc/provchain-org.git
+<span class="nb">cd</span><span class="w"> </span>provchain-org
+
+<span class="c1"># Run the ontology-integrated demo</span>
+cargo<span class="w"> </span>run<span class="w"> </span>demo
+
+<span class="c1"># Run comprehensive tests</span>
+cargo<span class="w"> </span><span class="nb">test</span>
+</pre></div>
+</div>
+</section>
+<section id="key-features">
+<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
+<p>✅ <strong>RDF-Native Blockchain</strong>: Blocks reference RDF graphs directly with cryptographic integrity</p>
+<p>✅ <strong>Semantic Data Access</strong>: Full SPARQL query support across all blockchain data</p>
+<p>✅ <strong>Ontology Integration</strong>: Automatic loading and validation using traceability ontology</p>
+<p>✅ <strong>RDF Canonicalization</strong>: Advanced canonicalization algorithm for semantic equivalence</p>
+<p>✅ <strong>Distributed P2P Network</strong>: WebSocket-based peer communication and discovery</p>
+<p>✅ <strong>Supply Chain Traceability</strong>: Track products from origin to consumer with environmental monitoring</p>
+</section>
+<section id="system-architecture">
+<h2>System Architecture<a class="headerlink" href="#system-architecture" title="Link to this heading"></a></h2>
+<p>The ProvChainOrg system is built on a layered architecture that seamlessly integrates:</p>
+<ul class="simple">
+<li><p><strong>Application Layer</strong>: Web interface, REST API, and CLI tools</p></li>
+<li><p><strong>Core Blockchain Layer</strong>: Blockchain engine with RDF canonicalization</p></li>
+<li><p><strong>Semantic Data Layer</strong>: RDF store with SPARQL processing</p></li>
+<li><p><strong>Ontology Layer</strong>: Traceability ontology with validation</p></li>
+<li><p><strong>Network Layer</strong>: P2P protocol with consensus mechanism</p></li>
+<li><p><strong>Storage Layer</strong>: Persistent storage with caching</p></li>
+</ul>
+</section>
+<section id="documentation-structure">
+<h2>Documentation Structure<a class="headerlink" href="#documentation-structure" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview/index.html">Project Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#executive-summary">Executive Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#what-is-provchainorg">What is ProvChainOrg?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#key-innovations">Key Innovations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#business-value-proposition">Business Value Proposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#technical-highlights">Technical Highlights</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#use-cases">Use Cases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#getting-started">Getting Started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#next-steps">Next Steps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/index.html#research-context">Research Context</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="research-background">
+<h2>Research Background<a class="headerlink" href="#research-background" title="Link to this heading"></a></h2>
+<p>This implementation is based on the GraphChain concept from:</p>
+<blockquote>
+<div><p>Sopek, M., Grądzki, P., Kosowski, W., Kuziński, D., Trójczak, R., &amp; Trypuz, R. (2018).
+GraphChain – A Distributed Database with Explicit Semantics and Chained RDF Graphs.
+In Proceedings of The 2018 Web Conference Companion (WWW’18 Companion).</p>
+</div></blockquote>
+<p>Our implementation extends the original concept with:</p>
+<ul class="simple">
+<li><p>Modern Rust implementation for performance and safety</p></li>
+<li><p>Comprehensive ontology integration with PROV-O</p></li>
+<li><p>Advanced RDF canonicalization algorithm</p></li>
+<li><p>Production-ready P2P networking</p></li>
+<li><p>Complete supply chain traceability use case</p></li>
+</ul>
+</section>
+<section id="technology-stack">
+<h2>Technology Stack<a class="headerlink" href="#technology-stack" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>Technology</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Core Language</p></td>
+<td><p>Rust 1.70+</p></td>
+</tr>
+<tr class="row-odd"><td><p>RDF Store</p></td>
+<td><p>Oxigraph (SPARQL 1.1)</p></td>
+</tr>
+<tr class="row-even"><td><p>Networking</p></td>
+<td><p>Tokio + WebSockets</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cryptography</p></td>
+<td><p>SHA-256, Ed25519</p></td>
+</tr>
+<tr class="row-even"><td><p>Serialization</p></td>
+<td><p>Turtle, JSON-LD</p></td>
+</tr>
+<tr class="row-odd"><td><p>Web Framework</p></td>
+<td><p>Axum</p></td>
+</tr>
+<tr class="row-even"><td><p>Testing</p></td>
+<td><p>Comprehensive test suite (27 tests)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="current-status">
+<h2>Current Status<a class="headerlink" href="#current-status" title="Link to this heading"></a></h2>
+<div class="status-grid">
+  <div class="status-item status-implemented">
+    <h4>✅ Implemented</h4>
+    <ul>
+      <li>Core blockchain with RDF graphs</li>
+      <li>RDF canonicalization algorithm</li>
+      <li>Ontology integration and validation</li>
+      <li>SPARQL query capabilities</li>
+      <li>Supply chain traceability demo</li>
+      <li>Comprehensive test suite</li>
+    </ul>
+  </div>
+  <div class="status-item status-planned">
+    <h4>🚧 In Development</h4>
+    <ul>
+      <li>Full P2P network implementation</li>
+      <li>Consensus mechanism (Proof-of-Authority)</li>
+      <li>Advanced ontology reasoning</li>
+      <li>Cross-node SPARQL queries</li>
+    </ul>
+  </div>
+  <div class="status-item status-experimental">
+    <h4>📋 Future Enhancements</h4>
+    <ul>
+      <li>Multiple ontology support</li>
+      <li>Geographic origin tracking</li>
+      <li>Performance optimization</li>
+      <li>Production deployment tools</li>
+    </ul>
+  </div>
+</div></section>
+<section id="getting-help">
+<h2>Getting Help<a class="headerlink" href="#getting-help" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Documentation</strong>: You’re reading it! Use the navigation to explore specific topics</p></li>
+<li><p><strong>Issues</strong>: Report bugs and request features on <a class="reference external" href="https://github.com/anusornc/provchain-org/issues">GitHub Issues</a></p></li>
+<li><p><strong>Discussions</strong>: Join the community discussion on <a class="reference external" href="https://github.com/anusornc/provchain-org/discussions">GitHub Discussions</a></p></li>
+<li><p><strong>Email</strong>: Contact the development team at <a class="reference external" href="mailto:provchain&#37;&#52;&#48;example&#46;org">provchain<span>&#64;</span>example<span>&#46;</span>org</a></p></li>
+</ul>
+</section>
+<section id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Link to this heading"></a></h2>
+<p>We welcome contributions! Please see our GitHub repository for details on:</p>
+<ul class="simple">
+<li><p>Setting up the development environment</p></li>
+<li><p>Code style and conventions</p></li>
+<li><p>Testing requirements</p></li>
+<li><p>Pull request process</p></li>
+</ul>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading"></a></h2>
+<p>This project is licensed under the MIT License. See the <a class="reference external" href="https://github.com/anusornc/provchain-org/blob/main/LICENSE">LICENSE</a> file for details.</p>
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and Tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="overview/index.html" class="btn btn-neutral float-right" title="Project Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, ProvChainOrg Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

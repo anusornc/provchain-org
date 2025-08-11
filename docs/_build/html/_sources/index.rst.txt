@@ -1,0 +1,175 @@
+ProvChainOrg Documentation
+==========================
+
+.. image:: https://img.shields.io/badge/version-0.1.0-blue.svg
+   :alt: Version 0.1.0
+
+.. image:: https://img.shields.io/badge/rust-1.70+-orange.svg
+   :alt: Rust 1.70+
+
+.. image:: https://img.shields.io/badge/license-MIT-green.svg
+   :alt: MIT License
+
+**ProvChainOrg** is a production-ready implementation of the GraphChain concept for supply chain traceability using RDF graphs and SPARQL queries. This system combines blockchain security with semantic web technologies to create a distributed ledger with formal ontology support.
+
+.. note::
+   This documentation is generated from the source code and provides comprehensive coverage of the system architecture, APIs, and usage patterns.
+
+Quick Start
+-----------
+
+.. code-block:: bash
+
+   # Clone the repository
+   git clone https://github.com/anusornc/provchain-org.git
+   cd provchain-org
+
+   # Run the ontology-integrated demo
+   cargo run demo
+
+   # Run comprehensive tests
+   cargo test
+
+Key Features
+------------
+
+✅ **RDF-Native Blockchain**: Blocks reference RDF graphs directly with cryptographic integrity
+
+✅ **Semantic Data Access**: Full SPARQL query support across all blockchain data
+
+✅ **Ontology Integration**: Automatic loading and validation using traceability ontology
+
+✅ **RDF Canonicalization**: Advanced canonicalization algorithm for semantic equivalence
+
+✅ **Distributed P2P Network**: WebSocket-based peer communication and discovery
+
+✅ **Supply Chain Traceability**: Track products from origin to consumer with environmental monitoring
+
+System Architecture
+-------------------
+
+The ProvChainOrg system is built on a layered architecture that seamlessly integrates:
+
+- **Application Layer**: Web interface, REST API, and CLI tools
+- **Core Blockchain Layer**: Blockchain engine with RDF canonicalization
+- **Semantic Data Layer**: RDF store with SPARQL processing
+- **Ontology Layer**: Traceability ontology with validation
+- **Network Layer**: P2P protocol with consensus mechanism
+- **Storage Layer**: Persistent storage with caching
+
+Documentation Structure
+-----------------------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Getting Started
+
+   overview/index
+
+Research Background
+-------------------
+
+This implementation is based on the GraphChain concept from:
+
+    Sopek, M., Grądzki, P., Kosowski, W., Kuziński, D., Trójczak, R., & Trypuz, R. (2018). 
+    GraphChain – A Distributed Database with Explicit Semantics and Chained RDF Graphs. 
+    In Proceedings of The 2018 Web Conference Companion (WWW'18 Companion).
+
+Our implementation extends the original concept with:
+
+- Modern Rust implementation for performance and safety
+- Comprehensive ontology integration with PROV-O
+- Advanced RDF canonicalization algorithm
+- Production-ready P2P networking
+- Complete supply chain traceability use case
+
+Technology Stack
+----------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Component
+     - Technology
+   * - Core Language
+     - Rust 1.70+
+   * - RDF Store
+     - Oxigraph (SPARQL 1.1)
+   * - Networking
+     - Tokio + WebSockets
+   * - Cryptography
+     - SHA-256, Ed25519
+   * - Serialization
+     - Turtle, JSON-LD
+   * - Web Framework
+     - Axum
+   * - Testing
+     - Comprehensive test suite (27 tests)
+
+Current Status
+--------------
+
+.. raw:: html
+
+   <div class="status-grid">
+     <div class="status-item status-implemented">
+       <h4>✅ Implemented</h4>
+       <ul>
+         <li>Core blockchain with RDF graphs</li>
+         <li>RDF canonicalization algorithm</li>
+         <li>Ontology integration and validation</li>
+         <li>SPARQL query capabilities</li>
+         <li>Supply chain traceability demo</li>
+         <li>Comprehensive test suite</li>
+       </ul>
+     </div>
+     <div class="status-item status-planned">
+       <h4>🚧 In Development</h4>
+       <ul>
+         <li>Full P2P network implementation</li>
+         <li>Consensus mechanism (Proof-of-Authority)</li>
+         <li>Advanced ontology reasoning</li>
+         <li>Cross-node SPARQL queries</li>
+       </ul>
+     </div>
+     <div class="status-item status-experimental">
+       <h4>📋 Future Enhancements</h4>
+       <ul>
+         <li>Multiple ontology support</li>
+         <li>Geographic origin tracking</li>
+         <li>Performance optimization</li>
+         <li>Production deployment tools</li>
+       </ul>
+     </div>
+   </div>
+
+Getting Help
+------------
+
+- **Documentation**: You're reading it! Use the navigation to explore specific topics
+- **Issues**: Report bugs and request features on `GitHub Issues <https://github.com/anusornc/provchain-org/issues>`_
+- **Discussions**: Join the community discussion on `GitHub Discussions <https://github.com/anusornc/provchain-org/discussions>`_
+- **Email**: Contact the development team at provchain@example.org
+
+Contributing
+------------
+
+We welcome contributions! Please see our GitHub repository for details on:
+
+- Setting up the development environment
+- Code style and conventions
+- Testing requirements
+- Pull request process
+
+License
+-------
+
+This project is licensed under the MIT License. See the `LICENSE <https://github.com/anusornc/provchain-org/blob/main/LICENSE>`_ file for details.
+
+Indices and Tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

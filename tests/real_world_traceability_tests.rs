@@ -25,7 +25,7 @@ mod tests {
         let test_data = std::fs::read_to_string("test_data/real_world_entity_linking_test.ttl")?;
         
         // Create RDF store and load data
-        let mut rdf_store = RDFStore::new()?;
+        let mut rdf_store = RDFStore::new();
         rdf_store.load_turtle_data(&test_data, "http://example.org/test")?;
         
         // Build knowledge graph
@@ -159,12 +159,12 @@ mod tests {
     fn test_temporal_graph_evolution() -> Result<()> {
         // Create blockchain with temporal data
         let mut blockchain = Blockchain::new();
-        let mut rdf_store = RDFStore::new()?;
+        let mut rdf_store = RDFStore::new();
         
         // Add blocks with temporal supply chain data
         let temporal_data = create_temporal_supply_chain_data()?;
         for (i, block_data) in temporal_data.iter().enumerate() {
-            blockchain.add_block(block_data.clone())?;
+            blockchain.add_block(block_data.clone());
             rdf_store.load_turtle_data(block_data, &format!("http://provchain.org/block/{}", i))?;
         }
         

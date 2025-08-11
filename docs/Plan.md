@@ -1,4 +1,13 @@
-# Plan & Design
+# ProvChainOrg: Semantic Blockchain for Supply Chain Traceability
+
+## Executive Summary
+
+ProvChainOrg is a production-ready implementation of the GraphChain concept for supply chain traceability using RDF graphs and SPARQL queries. This system combines blockchain security with semantic web technologies to create a distributed ledger with formal ontology support.
+
+## System Architecture
+
+.. uml:: diagrams/system-architecture.puml
+   :caption: Figure 1: Overall system architecture showing the integration of blockchain, RDF semantics, and distributed networking
 
 ## Goal
 Develop the world's best traceability blockchain solution for supply chain transparency, leveraging RDF semantic technologies and SPARQL querying for comprehensive product provenance tracking and establishing industry leadership in blockchain-based traceability systems.

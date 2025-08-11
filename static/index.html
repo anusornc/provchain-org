@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProvChain - Blockchain Provenance System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <i class="fas fa-link"></i>
+                    <span>ProvChain</span>
+                </div>
+                <div class="nav-menu">
+                    <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="#blocks" class="nav-link" data-section="blocks">
+                        <i class="fas fa-cubes"></i> Blocks
+                    </a>
+                    <a href="#traceability" class="nav-link" data-section="traceability">
+                        <i class="fas fa-route"></i> Traceability
+                    </a>
+                    <a href="#sparql" class="nav-link" data-section="sparql">
+                        <i class="fas fa-search"></i> SPARQL
+                    </a>
+                    <a href="#transactions" class="nav-link" data-section="transactions">
+                        <i class="fas fa-exchange-alt"></i> Transactions
+                    </a>
+                </div>
+                <div class="nav-auth">
+                    <button id="loginBtn" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    <div id="userInfo" class="user-info" style="display: none;">
+                        <span id="username"></span>
+                        <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="section-header">
+                    <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+                    <p>Overview of your blockchain provenance system</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-cubes"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="blockHeight">-</h3>
+                            <p>Total Blocks</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalTransactions">-</h3>
+                            <p>Total Transactions</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-network-wired"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="networkPeers">-</h3>
+                            <p>Network Peers</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="blockchainStatus">-</h3>
+                            <p>Blockchain Status</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-clock"></i> Recent Transactions</h3>
+                        <div id="recentTransactions" class="transaction-list">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-chart-line"></i> System Health</h3>
+                        <div class="health-indicators">
+                            <div class="health-item">
+                                <span class="health-label">API Status</span>
+                                <span id="apiStatus" class="health-status">Checking...</span>
+                            </div>
+                            <div class="health-item">
+                                <span class="health-label">Last Block</span>
+                                <span id="lastBlockTime" class="health-status">-</span>
+                            </div>
+                            <div class="health-item">
+                                <span class="health-label">Validation</span>
+                                <span id="validationStatus" class="health-status">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Blocks Section -->
+            <section id="blocks" class="content-section">
+                <div class="section-header">
+                    <h1><i class="fas fa-cubes"></i> Block Explorer</h1>
+                    <p>Browse and explore blockchain blocks</p>
+                </div>
+
+                <div class="blocks-container">
+                    <div class="blocks-controls">
+                        <input type="text" id="blockSearch" placeholder="Search by block index or hash..." class="search-input">
+                        <button id="refreshBlocks" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div id="blocksList" class="blocks-list">
+                        <div class="loading">Loading blocks...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Traceability Section -->
+            <section id="traceability" class="content-section">
+                <div class="section-header">
+                    <h1><i class="fas fa-route"></i> Product Traceability</h1>
+                    <p>Track products through the supply chain</p>
+                </div>
+
+                <div class="trace-container">
+                    <div class="trace-search">
+                        <div class="search-form">
+                            <div class="form-group">
+                                <label for="batchId">Batch ID</label>
+                                <input type="text" id="batchId" placeholder="Enter batch ID...">
+                            </div>
+                            <div class="form-group">
+                                <label for="productName">Product Name (Optional)</label>
+                                <input type="text" id="productName" placeholder="Enter product name...">
+                            </div>
+                            <button id="traceProduct" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Trace Product
+                            </button>
+                        </div>
+                    </div>
+                    <div id="traceResults" class="trace-results">
+                        <div class="trace-placeholder">
+                            <i class="fas fa-search"></i>
+                            <p>Enter a batch ID to trace a product through the supply chain</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SPARQL Section -->
+            <section id="sparql" class="content-section">
+                <div class="section-header">
+                    <h1><i class="fas fa-search"></i> SPARQL Query Interface</h1>
+                    <p>Execute SPARQL queries on the RDF knowledge graph</p>
+                </div>
+
+                <div class="sparql-container">
+                    <div class="query-editor">
+                        <div class="editor-header">
+                            <h3>Query Editor</h3>
+                            <div class="editor-controls">
+                                <select id="queryTemplates" class="form-select">
+                                    <option value="">Select a template...</option>
+                                    <option value="all-triples">All Triples</option>
+                                    <option value="batch-trace">Trace by Batch</option>
+                                    <option value="env-conditions">Environmental Conditions</option>
+                                    <option value="blockchain-metadata">Blockchain Metadata</option>
+                                </select>
+                                <button id="executeQuery" class="btn btn-primary">
+                                    <i class="fas fa-play"></i> Execute
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="sparqlQuery" placeholder="Enter your SPARQL query here..."></textarea>
+                    </div>
+                    <div class="query-results">
+                        <div class="results-header">
+                            <h3>Results</h3>
+                            <div id="queryStats" class="query-stats"></div>
+                        </div>
+                        <div id="sparqlResults" class="results-content">
+                            <div class="results-placeholder">
+                                <i class="fas fa-database"></i>
+                                <p>Execute a query to see results</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transactions Section -->
+            <section id="transactions" class="content-section">
+                <div class="section-header">
+                    <h1><i class="fas fa-exchange-alt"></i> Transaction Management</h1>
+                    <p>Add new data and view transaction history</p>
+                </div>
+
+                <div class="transactions-container">
+                    <div class="add-transaction">
+                        <h3><i class="fas fa-plus"></i> Add New Triple</h3>
+                        <form id="addTripleForm" class="triple-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="subject">Subject</label>
+                                    <input type="text" id="subject" placeholder="e.g., :batch123" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="predicate">Predicate</label>
+                                    <input type="text" id="predicate" placeholder="e.g., tc:origin" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="object">Object</label>
+                                    <input type="text" id="object" placeholder="e.g., 'Farm ABC'" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Triple
+                            </button>
+                        </form>
+                    </div>
+                    <div class="transaction-history">
+                        <h3><i class="fas fa-history"></i> Recent Transactions</h3>
+                        <div id="transactionsList" class="transactions-list">
+                            <div class="loading">Loading transactions...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Login to ProvChain</h2>
+                    <span class="close">&times;</span>
+                </div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginUsername">Username</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

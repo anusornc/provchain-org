@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use provchain_org::{blockchain::Blockchain, rdf_store::RDFStore, demo, web::server::create_web_server};
+use provchain_org::{blockchain::Blockchain, rdf_store::RDFStore, demo, web::server::create_web_server, demo_runner::run_demo_with_args};
 use std::fs;
 use tracing::info;
 
@@ -27,6 +27,13 @@ enum Commands {
 
     /// Run the built-in UHT manufacturing demo
     Demo,
+
+    /// Run transaction blockchain demos
+    TransactionDemo {
+        /// Demo type: uht, basic, signing, multi, all, interactive
+        #[arg(short, long, default_value = "interactive")]
+        demo_type: String,
+    },
 
     /// Start the web server for Phase 2 REST API
     WebServer {
@@ -81,6 +88,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Demo => {
             info!("Running built-in demo...");
             demo::run_demo();
+        }
+        Commands::TransactionDemo { demo_type } => {
+            info!("Running transaction blockchain demo: {}", demo_type);
+            let args = vec!["provchain".to_string(), demo_type];
+            if let Err(e) = run_demo_with_args(args) {
+                eprintln!("Demo error: {}", e);
+                std::process::exit(1);
+            }
         }
         Commands::WebServer { port } => {
             info!("Starting Phase 2 web server on port {}", port);

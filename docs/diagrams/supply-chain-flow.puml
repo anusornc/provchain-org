@@ -1,0 +1,141 @@
+@startuml supply-chain-flow
+!theme sketchy-outline
+title Supply Chain Traceability with Ontology Validation
+caption Figure 4: Complete supply chain traceability flow showing ontology-based validation and environmental monitoring
+
+actor "Farmer\n(trace:Farmer)" as Farmer
+actor "Processor\n(trace:Manufacturer)" as Processor
+actor "Transporter\n(trace:LogisticsProvider)" as Transporter
+actor "Retailer\n(trace:Retailer)" as Retailer
+actor "Consumer" as Consumer
+
+database "ProvChain\nBlockchain" as Blockchain
+database "RDF Store\n(Oxigraph)" as RDFStore
+database "Traceability\nOntology" as Ontology
+
+== Farm Origin ==
+
+Farmer -> Blockchain : **1. Create ProductBatch**\n<trace:ProductBatch>\nhasBatchID: "MB001"\nproducedAt: 2025-08-08T10:00:00Z
+activate Blockchain
+
+Blockchain -> RDFStore : Store in Named Graph\nhttp://provchain.org/block/1
+activate RDFStore
+
+Blockchain -> Ontology : **Validate against ontology**\n✓ trace:ProductBatch class\n✓ Required properties\n✓ Data types
+activate Ontology
+
+Ontology --> Blockchain : ✅ Validation Success
+deactivate Ontology
+
+RDFStore --> Blockchain : ✅ Graph Stored
+deactivate RDFStore
+
+Blockchain --> Farmer : ✅ Block #1 Created\nHash: 0x1a2b3c...
+deactivate Blockchain
+
+== Processing Stage ==
+
+Processor -> Blockchain : **2. Record ProcessingActivity**\n<trace:ProcessingActivity>\nused: ex:milkBatch1\nwasAssociatedWith: ex:UHTFactory
+activate Blockchain
+
+Blockchain -> RDFStore : Store in Named Graph\nhttp://provchain.org/block/2
+activate RDFStore
+
+Blockchain -> Ontology : **Validate processing**\n✓ trace:ProcessingActivity\n✓ prov:used relationship\n✓ Agent classification
+activate Ontology
+
+Ontology --> Blockchain : ✅ Validation Success
+deactivate Ontology
+
+RDFStore --> Blockchain : ✅ Graph Stored\n+ Provenance Links
+deactivate RDFStore
+
+Blockchain --> Processor : ✅ Block #2 Created\nHash: 0x4d5e6f...
+deactivate Blockchain
+
+== Transportation with Environmental Monitoring ==
+
+Transporter -> Blockchain : **3. Add TransportActivity**\n+ EnvironmentalCondition\ntemperature: 4.2°C\nhumidity: 65%
+activate Blockchain
+
+Blockchain -> RDFStore : Store transport data\nhttp://provchain.org/block/3
+activate RDFStore
+
+Blockchain -> Ontology : **Validate environmental data**\n✓ trace:TransportActivity\n✓ trace:EnvironmentalCondition\n✓ Temperature/humidity ranges
+activate Ontology
+
+Ontology --> Blockchain : ✅ Environmental Validation
+deactivate Ontology
+
+RDFStore --> Blockchain : ✅ Environmental Data Stored
+deactivate RDFStore
+
+Blockchain --> Transporter : ✅ Block #3 Created\nEnvironmental compliance ✓
+deactivate Blockchain
+
+== Retail Distribution ==
+
+Retailer -> Blockchain : **4. Record Final Destination**\n<trace:RetailActivity>\nlocation: "Store #123"\nreceivedAt: 2025-08-10T09:00:00Z
+activate Blockchain
+
+Blockchain -> RDFStore : Store retail data\nhttp://provchain.org/block/4
+activate RDFStore
+
+Blockchain -> Ontology : **Validate retail record**\n✓ trace:RetailActivity\n✓ Location data\n✓ Chain of custody
+activate Ontology
+
+Ontology --> Blockchain : ✅ Retail Validation
+deactivate Ontology
+
+RDFStore --> Blockchain : ✅ Complete Chain Stored
+deactivate RDFStore
+
+Blockchain --> Retailer : ✅ Block #4 Created\nFull traceability established
+deactivate Blockchain
+
+== Consumer Query ==
+
+Consumer -> RDFStore : **5. Query Complete Trace**\nSPARQL: Trace batch "MB001"
+activate RDFStore
+
+RDFStore -> Ontology : **Ontology-aware query**\nUsing trace: classes and properties
+activate Ontology
+
+Ontology --> RDFStore : Enhanced query results\nwith semantic context
+deactivate Ontology
+
+RDFStore --> Consumer : **Complete Traceability Report**\n• Farm origin: John's Dairy\n• Processing: UHT Factory\n• Transport: Cold chain ✓\n• Environmental: Compliant ✓\n• Retail: Store #123
+deactivate RDFStore
+
+note over Blockchain
+  **Each step validated against ontology:**
+  • Class definitions (ProductBatch, ProcessingActivity, etc.)
+  • Required properties (hasBatchID, recordedAt)
+  • Data type constraints
+  • Environmental condition ranges
+  • Agent role validation
+end note
+
+note over RDFStore
+  **SPARQL queries across entire chain:**
+  ```sparql
+  SELECT ?batch ?activity ?agent ?timestamp WHERE {
+    ?batch a trace:ProductBatch ;
+           trace:hasBatchID "MB001" .
+    ?activity prov:used ?batch ;
+              prov:wasAssociatedWith ?agent ;
+              trace:recordedAt ?timestamp .
+  } ORDER BY ?timestamp
+  ```
+end note
+
+note over Ontology
+  **Traceability Ontology (PROV-O Extended):**
+  • trace:ProductBatch, trace:IngredientLot
+  • trace:ProcessingActivity, trace:TransportActivity
+  • trace:Farmer, trace:Manufacturer, trace:LogisticsProvider
+  • trace:EnvironmentalCondition with constraints
+  • Automatic validation and inference
+end note
+
+@enduml

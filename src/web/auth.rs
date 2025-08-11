@@ -8,14 +8,33 @@ use axum::{
     response::Response,
     Json,
 };
+use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-/// JWT secret key (in production, this should be loaded from environment)
-const JWT_SECRET: &[u8] = b"your-secret-key-change-in-production";
+/// JWT secret key (loaded from environment or generated securely)
+fn get_jwt_secret() -> Vec<u8> {
+    match std::env::var("JWT_SECRET") {
+        Ok(secret) => {
+            if secret.len() < 32 {
+                panic!("JWT_SECRET must be at least 32 characters long for security");
+            }
+            secret.into_bytes()
+        }
+        Err(_) => {
+            if cfg!(debug_assertions) {
+                // Only allow default in debug mode
+                eprintln!("WARNING: Using default JWT secret in debug mode. Set JWT_SECRET environment variable for production!");
+                "debug-jwt-secret-change-in-production-32chars".to_string().into_bytes()
+            } else {
+                panic!("JWT_SECRET environment variable must be set in production mode");
+            }
+        }
+    }
+}
 
 /// User database (in production, this would be a proper database)
 type UserDatabase = Arc<RwLock<HashMap<String, UserInfo>>>;
@@ -42,22 +61,26 @@ impl AuthState {
     pub fn new() -> Self {
         let mut users = HashMap::new();
         
-        // Add default users for demo purposes
+        // Add default users for demo purposes with proper bcrypt hashing
+        let admin_hash = hash("admin123", DEFAULT_COST).unwrap();
+        let farmer_hash = hash("farmer123", DEFAULT_COST).unwrap();
+        let processor_hash = hash("processor123", DEFAULT_COST).unwrap();
+        
         users.insert("admin".to_string(), UserInfo {
             username: "admin".to_string(),
-            password_hash: "admin123".to_string(), // In production, use bcrypt
+            password_hash: admin_hash,
             role: ActorRole::Admin,
         });
         
         users.insert("farmer1".to_string(), UserInfo {
             username: "farmer1".to_string(),
-            password_hash: "farmer123".to_string(),
+            password_hash: farmer_hash,
             role: ActorRole::Farmer,
         });
         
         users.insert("processor1".to_string(), UserInfo {
             username: "processor1".to_string(),
-            password_hash: "processor123".to_string(),
+            password_hash: processor_hash,
             role: ActorRole::Processor,
         });
 
@@ -83,7 +106,7 @@ pub fn generate_token(username: &str, role: &ActorRole) -> Result<String, jsonwe
     encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(JWT_SECRET),
+        &EncodingKey::from_secret(&get_jwt_secret()),
     )
 }
 
@@ -91,7 +114,7 @@ pub fn generate_token(username: &str, role: &ActorRole) -> Result<String, jsonwe
 pub fn validate_token(token: &str) -> Result<UserClaims, jsonwebtoken::errors::Error> {
     decode::<UserClaims>(
         token,
-        &DecodingKey::from_secret(JWT_SECRET),
+        &DecodingKey::from_secret(&get_jwt_secret()),
         &Validation::default(),
     )
     .map(|data| data.claims)
@@ -105,35 +128,36 @@ pub async fn authenticate(
     let users = auth_state.users.read().await;
     
     if let Some(user_info) = users.get(&auth_request.username) {
-        // In production, use proper password verification (bcrypt)
-        if user_info.password_hash == auth_request.password {
-            match generate_token(&auth_request.username, &user_info.role) {
-                Ok(token) => {
-                    let expires_at = Utc::now() + Duration::hours(24);
-                    Ok(Json(AuthResponse {
-                        token,
-                        expires_at,
-                        user_role: user_info.role.to_string(),
-                    }))
+        // Use bcrypt to verify password
+        match verify(&auth_request.password, &user_info.password_hash) {
+            Ok(true) => {
+                match generate_token(&auth_request.username, &user_info.role) {
+                    Ok(token) => {
+                        let expires_at = Utc::now() + Duration::hours(24);
+                        Ok(Json(AuthResponse {
+                            token,
+                            expires_at,
+                            user_role: user_info.role.to_string(),
+                        }))
+                    }
+                    Err(_) => Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(ApiError {
+                            error: "token_generation_failed".to_string(),
+                            message: "Failed to generate authentication token".to_string(),
+                            timestamp: Utc::now(),
+                        }),
+                    )),
                 }
-                Err(_) => Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ApiError {
-                        error: "token_generation_failed".to_string(),
-                        message: "Failed to generate authentication token".to_string(),
-                        timestamp: Utc::now(),
-                    }),
-                )),
             }
-        } else {
-            Err((
+            Ok(false) | Err(_) => Err((
                 StatusCode::UNAUTHORIZED,
                 Json(ApiError {
                     error: "invalid_credentials".to_string(),
                     message: "Invalid username or password".to_string(),
                     timestamp: Utc::now(),
                 }),
-            ))
+            )),
         }
     } else {
         Err((

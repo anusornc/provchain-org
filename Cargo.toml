@@ -42,9 +42,10 @@ tracing-subscriber = "0.3"
 # Web framework and HTTP server for Phase 2
 axum = "0.7"
 tower = "0.4"
-tower-http = { version = "0.5", features = ["cors", "fs"] }
+tower-http = { version = "0.5", features = ["cors", "fs", "set-header"] }
 hyper = { version = "1.0", features = ["full"] }
 mime = "0.3"
+http = "1.0"
 
 # JSON Web Tokens for authentication
 jsonwebtoken = "9.2"
@@ -84,9 +85,19 @@ async-trait = "0.1"       # Async traits
 
 [dev-dependencies]
 tempfile = "3.8"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["json", "multipart"] }
 criterion = { version = "0.5", features = ["html_reports"] }
+
+# End-to-End Testing Dependencies
+headless_chrome = "1.0"
+selenium-rs = "0.1"
+fantoccini = "0.19"
+webdriver = "0.46"
 
 [[bench]]
 name = "simple_consensus_benchmarks"
 harness = false
+
+[[bin]]
+name = "demo_ui"
+path = "demo_ui.rs"

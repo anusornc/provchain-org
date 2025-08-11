@@ -1,0 +1,175 @@
+@startuml system-architecture
+!theme plain
+title ProvChainOrg: Semantic Blockchain Architecture
+
+package "Application Layer" as AppLayer {
+  rectangle "Web Interface" as WebUI {
+    React Frontend
+    Real-time Updates
+    Supply Chain Dashboard
+  }
+  
+  rectangle "REST API" as RestAPI {
+    HTTP/JSON Endpoints
+    Authentication
+    Rate Limiting
+  }
+  
+  rectangle "CLI Tools" as CLI {
+    Command Line Interface
+    Batch Operations
+    Administrative Tasks
+  }
+}
+
+package "Core Blockchain Layer" as BlockchainLayer {
+  rectangle "Blockchain Engine" as Blockchain {
+    Block Creation
+    Chain Validation
+    Hash Linking
+    Integrity Verification
+  }
+  
+  rectangle "RDF Canonicalization" as Canon {
+    Blank Node Handling
+    Magic_S/Magic_O Algorithm
+    Deterministic Hashing
+    Semantic Equivalence
+  }
+  
+  rectangle "Transaction Manager" as TxMgr {
+    Transaction Pool
+    Validation Rules
+    Digital Signatures
+  }
+}
+
+package "Semantic Data Layer" as SemanticLayer {
+  rectangle "RDF Store (Oxigraph)" as RDFStore {
+    Named Graph Storage
+    Triple Management
+    SPARQL Engine
+    Graph Indexing
+  }
+  
+  rectangle "SPARQL Processor" as SPARQL {
+    Query Optimization
+    Result Formatting
+    Cross-Graph Queries
+  }
+  
+  rectangle "Named Graph Manager" as GraphMgr {
+    Graph Organization
+    URI Management
+    Metadata Tracking
+  }
+}
+
+package "Ontology Layer" as OntologyLayer {
+  rectangle "Traceability Ontology" as Ontology {
+    Supply Chain Classes
+    PROV-O Extension
+    Environmental Conditions
+    Agent Definitions
+  }
+  
+  rectangle "Validation Engine" as Validator {
+    Class Validation
+    Property Checking
+    Constraint Enforcement
+    Error Reporting
+  }
+  
+  rectangle "Reasoning Engine" as Reasoner {
+    Inference Rules
+    Consistency Checking
+    Ontology Alignment
+  }
+}
+
+package "Network Layer" as NetworkLayer {
+  rectangle "P2P Protocol" as P2P {
+    WebSocket Communication
+    Message Routing
+    Connection Management
+  }
+  
+  rectangle "Peer Discovery" as Discovery {
+    Bootstrap Nodes
+    DHT Integration
+    Network Topology
+  }
+  
+  rectangle "Consensus Manager" as Consensus {
+    Proof-of-Authority
+    Block Validation
+    Network Synchronization
+  }
+}
+
+package "Storage Layer" as StorageLayer {
+  rectangle "Persistent Storage" as Storage {
+    Block Data
+    RDF Graphs
+    Configuration
+    Indexes
+  }
+  
+  rectangle "Cache Manager" as Cache {
+    Query Results
+    Graph Cache
+    Performance Optimization
+  }
+}
+
+' Relationships
+WebUI --> RestAPI : HTTP/WebSocket
+CLI --> Blockchain : Direct Access
+RestAPI --> Blockchain : API Calls
+RestAPI --> SPARQL : Query Requests
+
+Blockchain --> Canon : Canonicalization
+Blockchain --> TxMgr : Transaction Processing
+Blockchain --> RDFStore : Data Storage
+Canon --> RDFStore : Canonical Forms
+
+RDFStore --> SPARQL : Query Processing
+RDFStore --> GraphMgr : Graph Management
+SPARQL --> GraphMgr : Graph Access
+
+Ontology --> Validator : Validation Rules
+Validator --> RDFStore : Data Validation
+Reasoner --> Ontology : Inference
+
+P2P --> Discovery : Peer Management
+P2P --> Consensus : Consensus Protocol
+Consensus --> Blockchain : Block Consensus
+
+Blockchain --> Storage : Persistence
+RDFStore --> Storage : Graph Storage
+Cache --> Storage : Cache Management
+
+' Cross-layer relationships
+Validator --> Blockchain : Validation
+SPARQL --> Ontology : Ontology Queries
+P2P --> RDFStore : Data Synchronization
+
+note right of Canon
+  Novel RDF canonicalization algorithm
+  ensures deterministic hashing while
+  preserving semantic equivalence
+end note
+
+note bottom of Ontology
+  PROV-O extended ontology enables
+  standardized supply chain traceability
+  with environmental monitoring
+end note
+
+note left of P2P
+  WebSocket-based P2P protocol
+  maintains semantic consistency
+  across distributed nodes
+end note
+
+@enduml

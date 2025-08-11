@@ -34,3 +34,22 @@ Thumbs.db
 *.rs%
 *.rs.swp
 *.rs.swo
+
+# LaTeX aux files
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.bbl
+*.blg
+*.idx
+*.ind
+*.ilg
+*.lof
+*.lot
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.gz

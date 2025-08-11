@@ -59,6 +59,7 @@ impl Block {
     }
 }
 
+#[derive(Debug)]
 pub struct Blockchain {
     pub chain: Vec<Block>,
     pub rdf_store: RDFStore,
@@ -302,6 +303,15 @@ impl Blockchain {
     }
 
     pub fn add_block(&mut self, data: String) {
+        // Ensure we have at least a genesis block
+        if self.chain.is_empty() {
+            let genesis_block = self.create_genesis_block();
+            let graph_name = NamedNode::new("http://provchain.org/block/0").unwrap();
+            self.rdf_store.add_rdf_to_graph(&genesis_block.data, &graph_name);
+            self.rdf_store.add_block_metadata(&genesis_block);
+            self.chain.push(genesis_block);
+        }
+
         let prev_block = self.chain.last().unwrap();
         let mut new_block = Block::new(prev_block.index + 1, data.clone(), prev_block.hash.clone());
 

@@ -16,7 +16,11 @@ use axum::{
 };
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::{
+    cors::CorsLayer,
+    services::ServeDir,
+    set_header::SetResponseHeaderLayer,
+};
 use tracing::{info, error};
 
 /// Web server for the blockchain API
@@ -24,6 +28,7 @@ pub struct WebServer {
     app_state: AppState,
     auth_state: AuthState,
     port: u16,
+    actual_port: Option<u16>,
 }
 
 impl WebServer {
@@ -33,11 +38,15 @@ impl WebServer {
             app_state: AppState::new(blockchain),
             auth_state: AuthState::new(),
             port,
+            actual_port: None,
         }
     }
 
     /// Build the router with all routes and middleware
     fn build_router(&self) -> Router {
+        // Static file serving
+        let static_service = ServeDir::new("static").append_index_html_on_directories(true);
+
         // Public routes (no authentication required)
         let public_routes = Router::new()
             .route("/health", get(health_check))
@@ -57,19 +66,74 @@ impl WebServer {
             .layer(middleware::from_fn(auth_middleware))
             .with_state(self.app_state.clone());
 
-        // Combine routes and add CORS
+        // Configure CORS - secure by default
+        let cors_layer = if cfg!(debug_assertions) {
+            // Development mode - allow localhost
+            CorsLayer::new()
+                .allow_origin("http://localhost:8080".parse::<http::HeaderValue>().unwrap())
+                .allow_credentials(true)
+                .allow_methods([
+                    http::Method::GET,
+                    http::Method::POST,
+                    http::Method::OPTIONS,
+                ])
+                .allow_headers([
+                    http::header::AUTHORIZATION,
+                    http::header::CONTENT_TYPE,
+                    http::header::ACCEPT,
+                ])
+        } else {
+            // Production mode - restrict to specific origins
+            let allowed_origins = std::env::var("ALLOWED_ORIGINS")
+                .unwrap_or_else(|_| {
+                    eprintln!("WARNING: ALLOWED_ORIGINS not set, using default");
+                    "https://yourdomain.com".to_string()
+                });
+            
+            CorsLayer::new()
+                .allow_origin(allowed_origins.parse::<http::HeaderValue>().unwrap())
+                .allow_credentials(true)
+                .allow_methods([
+                    http::Method::GET,
+                    http::Method::POST,
+                    http::Method::OPTIONS,
+                ])
+                .allow_headers([
+                    http::header::AUTHORIZATION,
+                    http::header::CONTENT_TYPE,
+                    http::header::ACCEPT,
+                ])
+        };
+
         Router::new()
             .merge(public_routes)
             .merge(protected_routes)
+            .nest_service("/", static_service)
             .layer(
                 ServiceBuilder::new()
-                    .layer(
-                        CorsLayer::new()
-                            .allow_origin(Any)
-                            .allow_methods(Any)
-                            .allow_headers(Any),
-                    )
-                    .into_inner(),
+                    .layer(cors_layer)
+                    // Security headers
+                    .layer(SetResponseHeaderLayer::if_not_present(
+                        http::header::X_CONTENT_TYPE_OPTIONS,
+                        http::HeaderValue::from_static("nosniff"),
+                    ))
+                    .layer(SetResponseHeaderLayer::if_not_present(
+                        http::header::X_FRAME_OPTIONS,
+                        http::HeaderValue::from_static("DENY"),
+                    ))
+                    .layer(SetResponseHeaderLayer::if_not_present(
+                        http::header::X_XSS_PROTECTION,
+                        http::HeaderValue::from_static("1; mode=block"),
+                    ))
+                    .layer(SetResponseHeaderLayer::if_not_present(
+                        http::header::REFERRER_POLICY,
+                        http::HeaderValue::from_static("strict-origin-when-cross-origin"),
+                    ))
+                    .layer(SetResponseHeaderLayer::if_not_present(
+                        http::header::CONTENT_SECURITY_POLICY,
+                        http::HeaderValue::from_static("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"),
+                    ))
+                    .into_inner()
             )
     }
 
@@ -78,7 +142,8 @@ impl WebServer {
         let app = self.build_router();
         let addr = SocketAddr::from(([0, 0, 0, 0], self.port));
 
-        info!("Starting web server on {}", addr);
+        info!("Starting ProvChain web server on {}", addr);
+        info!("Web UI available at: http://localhost:{}", self.port);
         info!("API endpoints available:");
         info!("  GET  /health - Health check");
         info!("  POST /auth/login - Authentication");
@@ -90,6 +155,7 @@ impl WebServer {
         info!("  POST /api/sparql/query - Execute SPARQL query");
         info!("  GET  /api/products/trace - Product traceability");
         info!("  POST /api/blockchain/add-triple - Add new triple");
+        info!("Static files served from: ./static/");
 
         let listener = tokio::net::TcpListener::bind(addr).await?;
         
