@@ -306,9 +306,9 @@ trace:location{} a trace:GeographicLocation ;
 trace:product{} a trace:Product ;
     trace:hasWeight "{}" ;
     trace:hasQuality "Grade A" .
-"#, i, i, i, i, i, i, i, i, i, 
+"#, i, i, i % 100, i % 100, i % 100, i % 100, i % 100, i % 100, i % 100, 
     40.0 + (i as f64 % 10.0), -74.0 + (i as f64 % 10.0), 
-    i, (i % 100) + 50)
+    (i % 100) + 50)
     }).collect()
 }
 
@@ -359,7 +359,7 @@ trace:batch{} a trace:ProductBatch ;
 @prefix ex: <http://example.org/> .
 _:complex{} ex:hasNested _:nested{} .
 _:nested{} ex:value "complex{}" .
-"#, i, i, i),
+"#, i, i, i, i),
         }
     }).collect()
 }
@@ -381,7 +381,7 @@ fn generate_blank_node_data(size: usize) -> Vec<String> {
 ex:root{} ex:hasBlank _:b{} .
 _:b{} ex:property "value{}" .
 _:b{} ex:connectsTo _:b{} .
-"#, i, i, i, (i + 1) % size)
+"#, i, i, i, i, i, (i + 1) % size)
     }).collect()
 }
 
@@ -396,7 +396,7 @@ ex:container{} ex:contains ex:item{} .
 ex:item{} ex:hasSubItem ex:subitem{} .
 ex:subitem{} ex:hasProperty "nested property {}" .
 ex:subitem{} ex:backRef ex:container{} .
-"#, i, i, i, i, i, i)
+"#, i, i, i, i, i, i, i, i, i)
     }).collect()
 }
 
@@ -419,7 +419,7 @@ ex:instance{} rdf:type ex:Class{} ;
 ex:propertyValue{} rdf:type ex:PropertyType ;
     rdfs:domain ex:Class{} ;
     rdfs:range ex:ValueType .
-"#, i, i % 10, i, i, i, i, i)
+"#, i, i % 10, i, i, i, i, i, i)
     }).collect()
 }
 

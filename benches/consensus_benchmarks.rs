@@ -244,7 +244,7 @@ fn generate_complex_rdf_blocks(count: usize) -> Vec<String> {
 _:b{} ex:connects _:b{} .
 _:b{} rdf:type ex:ComplexNode .
 ex:root{} ex:hasChild _:b{} .
-"#, i, (i + 1, i, i, i) % count, i, i, i)
+"#, i, (i + 1) % count, i, i, i)
     }).collect()
 }
 

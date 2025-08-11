@@ -106,7 +106,8 @@ impl Blockchain {
         bc.load_ontology();
         
         // Check if we need to create genesis block or load existing chain
-        if bc.rdf_store.store.len().unwrap_or(0) == 0 {
+        let store_len = bc.rdf_store.store.len().unwrap_or(0);
+        if store_len == 0 {
             // Create genesis block for new blockchain
             let genesis_block = bc.create_genesis_block();
             
@@ -124,6 +125,19 @@ impl Blockchain {
         } else {
             // Load existing blockchain from persistent storage
             bc.load_chain_from_store()?;
+            
+            // If no blocks were loaded but store has data, something is wrong
+            // Create genesis block as fallback
+            if bc.chain.is_empty() {
+                eprintln!("Warning: Store has data but no blocks loaded, creating genesis block");
+                let genesis_block = bc.create_genesis_block();
+                
+                let graph_name = NamedNode::new("http://provchain.org/block/0").unwrap();
+                bc.rdf_store.add_rdf_to_graph(&genesis_block.data, &graph_name);
+                bc.rdf_store.add_block_metadata(&genesis_block);
+                
+                bc.chain.push(genesis_block);
+            }
         }
         
         Ok(bc)

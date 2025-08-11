@@ -137,6 +137,26 @@ impl Default for RDFStore {
     }
 }
 
+impl Clone for RDFStore {
+    fn clone(&self) -> Self {
+        // Create a new store
+        let new_store = Store::new().unwrap();
+        
+        // Copy all quads from the original store to the new store
+        for quad_result in self.store.iter() {
+            if let Ok(quad) = quad_result {
+                let _ = new_store.insert(&quad);
+            }
+        }
+        
+        RDFStore {
+            store: new_store,
+            config: self.config.clone(),
+            is_persistent: self.is_persistent,
+        }
+    }
+}
+
 impl RDFStore {
     /// Create a new in-memory RDF store (for testing and development)
     pub fn new() -> Self {
@@ -814,6 +834,39 @@ impl RDFStore {
 
     pub fn query(&self, sparql: &str) -> QueryResults {
         self.store.query(sparql).unwrap()
+    }
+
+    /// Load Turtle data into a specific named graph
+    pub fn load_turtle_data(&mut self, turtle_data: &str, graph_uri: &str) -> Result<()> {
+        let graph_name = NamedNode::new(graph_uri)
+            .with_context(|| format!("Invalid graph URI: {}", graph_uri))?;
+        
+        // Parse the Turtle data
+        let reader = Cursor::new(turtle_data.as_bytes());
+        
+        // Load into a temporary store first to validate
+        let temp_store = Store::new()
+            .with_context(|| "Failed to create temporary store")?;
+        
+        temp_store.load_from_reader(RdfFormat::Turtle, reader)
+            .with_context(|| "Failed to parse Turtle data")?;
+        
+        // Copy all triples to the target graph
+        for quad_result in temp_store.iter() {
+            if let Ok(original_quad) = quad_result {
+                // Create a new quad with the specified graph name
+                let new_quad = Quad::new(
+                    original_quad.subject.clone(),
+                    original_quad.predicate.clone(),
+                    original_quad.object.clone(),
+                    graph_name.clone()
+                );
+                self.store.insert(&new_quad)
+                    .with_context(|| "Failed to insert quad into store")?;
+            }
+        }
+        
+        Ok(())
     }
 
 
