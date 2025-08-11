@@ -138,22 +138,20 @@ package "Network Configuration" {
 
 ' Consensus flow
 package "Consensus Mechanism (Proof-of-Authority)" {
-  start
-  :New Transaction\nReceived;
-  
-  if (Node is Authority?) then (yes)
-    :Validate Transaction\nagainst Ontology;
-    :Create New Block;
-    :Sign Block with\nAuthority Key;
-    :Broadcast Block\nto All Peers;
-  else (no)
-    :Forward Transaction\nto Authority Node;
-  endif
-  
-  :Peers Validate\nBlock Signature;
-  :Update Local\nBlockchain Copy;
-  :Sync RDF Store;
-  stop
+  note as ConsensusFlow
+    **Consensus Flow:**
+    1. New Transaction Received
+    2. If Node is Authority:
+       - Validate Transaction against Ontology
+       - Create New Block
+       - Sign Block with Authority Key
+       - Broadcast Block to All Peers
+    3. If Node is Regular Peer:
+       - Forward Transaction to Authority Node
+    4. Peers Validate Block Signature
+    5. Update Local Blockchain Copy
+    6. Sync RDF Store
+  end note
 }
 
 note bottom of AuthNode

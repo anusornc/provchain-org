@@ -1,14 +1,17 @@
 ProvChainOrg Documentation
 ==========================
 
-.. image:: https://img.shields.io/badge/version-0.1.0-blue.svg
-   :alt: Version 0.1.0
+.. raw:: html
 
-.. image:: https://img.shields.io/badge/rust-1.70+-orange.svg
-   :alt: Rust 1.70+
+   <div class="badges">
+     <span class="badge badge-version">Version 0.1.0</span>
+     <span class="badge badge-rust">Rust 1.70+</span>
+     <span class="badge badge-license">MIT License</span>
+   </div>
 
-.. image:: https://img.shields.io/badge/license-MIT-green.svg
-   :alt: MIT License
+.. raw:: latex
+
+   \textbf{Version:} 0.1.0 \quad \textbf{Rust:} 1.70+ \quad \textbf{License:} MIT
 
 **ProvChainOrg** is a production-ready implementation of the GraphChain concept for supply chain traceability using RDF graphs and SPARQL queries. This system combines blockchain security with semantic web technologies to create a distributed ledger with formal ontology support.
 

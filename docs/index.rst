@@ -1,175 +1,182 @@
-ProvChainOrg Documentation
-==========================
+ProvChainOrg Developer Documentation
+====================================
 
-.. image:: https://img.shields.io/badge/version-0.1.0-blue.svg
-   :alt: Version 0.1.0
+.. raw:: html
 
-.. image:: https://img.shields.io/badge/rust-1.70+-orange.svg
-   :alt: Rust 1.70+
-
-.. image:: https://img.shields.io/badge/license-MIT-green.svg
-   :alt: MIT License
-
-**ProvChainOrg** is a production-ready implementation of the GraphChain concept for supply chain traceability using RDF graphs and SPARQL queries. This system combines blockchain security with semantic web technologies to create a distributed ledger with formal ontology support.
+   <div class="hero-section">
+     <div class="hero-content">
+       <h1>Build with Semantic Blockchain Technology</h1>
+       <p class="hero-subtitle">ProvChainOrg combines blockchain security with semantic web technologies for transparent, queryable supply chain traceability.</p>
+       <div class="hero-badges">
+         <span class="badge badge-version">Version 0.1.0</span>
+         <span class="badge badge-rust">Rust 1.70+</span>
+         <span class="badge badge-license">MIT License</span>
+       </div>
+     </div>
+   </div>
 
 .. note::
-   This documentation is generated from the source code and provides comprehensive coverage of the system architecture, APIs, and usage patterns.
+   This documentation is designed to help you build with ProvChainOrg. It covers concepts, explains the technology stack, and provides practical guides for building semantic blockchain applications.
 
 Quick Start
 -----------
 
+Get up and running with ProvChainOrg in minutes:
+
 .. code-block:: bash
 
-   # Clone the repository
+   # Install Rust (if needed)
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+   # Clone and run
    git clone https://github.com/anusornc/provchain-org.git
    cd provchain-org
-
-   # Run the ontology-integrated demo
    cargo run demo
 
-   # Run comprehensive tests
-   cargo test
-
-Key Features
-------------
-
-✅ **RDF-Native Blockchain**: Blocks reference RDF graphs directly with cryptographic integrity
-
-✅ **Semantic Data Access**: Full SPARQL query support across all blockchain data
-
-✅ **Ontology Integration**: Automatic loading and validation using traceability ontology
-
-✅ **RDF Canonicalization**: Advanced canonicalization algorithm for semantic equivalence
-
-✅ **Distributed P2P Network**: WebSocket-based peer communication and discovery
-
-✅ **Supply Chain Traceability**: Track products from origin to consumer with environmental monitoring
-
-System Architecture
--------------------
-
-The ProvChainOrg system is built on a layered architecture that seamlessly integrates:
-
-- **Application Layer**: Web interface, REST API, and CLI tools
-- **Core Blockchain Layer**: Blockchain engine with RDF canonicalization
-- **Semantic Data Layer**: RDF store with SPARQL processing
-- **Ontology Layer**: Traceability ontology with validation
-- **Network Layer**: P2P protocol with consensus mechanism
-- **Storage Layer**: Persistent storage with caching
-
-Documentation Structure
------------------------
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Getting Started
-
-   overview/index
-
-Research Background
--------------------
-
-This implementation is based on the GraphChain concept from:
-
-    Sopek, M., Grądzki, P., Kosowski, W., Kuziński, D., Trójczak, R., & Trypuz, R. (2018). 
-    GraphChain – A Distributed Database with Explicit Semantics and Chained RDF Graphs. 
-    In Proceedings of The 2018 Web Conference Companion (WWW'18 Companion).
-
-Our implementation extends the original concept with:
-
-- Modern Rust implementation for performance and safety
-- Comprehensive ontology integration with PROV-O
-- Advanced RDF canonicalization algorithm
-- Production-ready P2P networking
-- Complete supply chain traceability use case
-
-Technology Stack
-----------------
-
-.. list-table::
-   :header-rows: 1
-   :widths: 30 70
-
-   * - Component
-     - Technology
-   * - Core Language
-     - Rust 1.70+
-   * - RDF Store
-     - Oxigraph (SPARQL 1.1)
-   * - Networking
-     - Tokio + WebSockets
-   * - Cryptography
-     - SHA-256, Ed25519
-   * - Serialization
-     - Turtle, JSON-LD
-   * - Web Framework
-     - Axum
-   * - Testing
-     - Comprehensive test suite (27 tests)
-
-Current Status
---------------
+   # Try a SPARQL query
+   cargo run -- query queries/trace_by_batch_ontology.sparql
 
 .. raw:: html
 
-   <div class="status-grid">
-     <div class="status-item status-implemented">
-       <h4>✅ Implemented</h4>
-       <ul>
-         <li>Core blockchain with RDF graphs</li>
-         <li>RDF canonicalization algorithm</li>
-         <li>Ontology integration and validation</li>
-         <li>SPARQL query capabilities</li>
-         <li>Supply chain traceability demo</li>
-         <li>Comprehensive test suite</li>
-       </ul>
+   <div class="quick-links">
+     <a href="foundational/intro-to-provchainorg.html" class="quick-link">
+       <h3>🚀 New to ProvChainOrg?</h3>
+       <p>Start with the basics and learn core concepts</p>
+     </a>
+     <a href="stack/intro-to-stack.html" class="quick-link">
+       <h3>🛠️ Ready to Build?</h3>
+       <p>Explore the development stack and tools</p>
+     </a>
+     <a href="tutorials/first-supply-chain.html" class="quick-link">
+       <h3>📚 Follow a Tutorial</h3>
+       <p>Build your first supply chain application</p>
+     </a>
+   </div>
+
+Development Modules
+-------------------
+
+If this is your first time with ProvChainOrg development, we recommend starting at the beginning and working your way through like a book.
+
+Foundational Topics
+~~~~~~~~~~~~~~~~~~~
+
+Learn the core concepts that make ProvChainOrg unique:
+
+.. toctree::
+   :maxdepth: 1
+
+   foundational/intro-to-provchainorg
+   foundational/intro-to-rdf-blockchain
+   foundational/intro-to-supply-chain-traceability
+
+ProvChainOrg Stack
+~~~~~~~~~~~~~~~~~~
+
+Understand the tools and technologies for building applications:
+
+.. toctree::
+   :maxdepth: 1
+
+   stack/intro-to-stack
+
+Tutorials & Guides
+~~~~~~~~~~~~~~~~~~
+
+Step-by-step guides for common use cases:
+
+.. toctree::
+   :maxdepth: 1
+
+   tutorials/first-supply-chain
+
+What Makes ProvChainOrg Different?
+----------------------------------
+
+.. raw:: html
+
+   <div class="feature-grid">
+     <div class="feature-item">
+       <h3>🔗 RDF-Native Blockchain</h3>
+       <p>Store semantic data directly in blocks with cryptographic integrity</p>
      </div>
-     <div class="status-item status-planned">
-       <h4>🚧 In Development</h4>
-       <ul>
-         <li>Full P2P network implementation</li>
-         <li>Consensus mechanism (Proof-of-Authority)</li>
-         <li>Advanced ontology reasoning</li>
-         <li>Cross-node SPARQL queries</li>
-       </ul>
+     <div class="feature-item">
+       <h3>🔍 SPARQL Queries</h3>
+       <p>Query across the entire blockchain using standard semantic web technologies</p>
      </div>
-     <div class="status-item status-experimental">
-       <h4>📋 Future Enhancements</h4>
-       <ul>
-         <li>Multiple ontology support</li>
-         <li>Geographic origin tracking</li>
-         <li>Performance optimization</li>
-         <li>Production deployment tools</li>
-       </ul>
+     <div class="feature-item">
+       <h3>🧠 Ontology Validation</h3>
+       <p>Automatic validation against formal ontologies ensures data quality</p>
+     </div>
+     <div class="feature-item">
+       <h3>📊 Supply Chain Focus</h3>
+       <p>Built specifically for transparent, verifiable supply chain traceability</p>
      </div>
    </div>
 
-Getting Help
-------------
+Use Cases
+---------
 
-- **Documentation**: You're reading it! Use the navigation to explore specific topics
-- **Issues**: Report bugs and request features on `GitHub Issues <https://github.com/anusornc/provchain-org/issues>`_
-- **Discussions**: Join the community discussion on `GitHub Discussions <https://github.com/anusornc/provchain-org/discussions>`_
-- **Email**: Contact the development team at provchain@example.org
+ProvChainOrg is designed for applications that need:
+
+- **Food Safety**: Track products from farm to table with environmental monitoring
+- **Pharmaceutical Traceability**: Ensure drug authenticity and prevent counterfeiting  
+- **Luxury Goods Authentication**: Verify provenance and prevent fraud
+- **Regulatory Compliance**: Maintain immutable audit trails for compliance
+- **Sustainability Tracking**: Monitor environmental impact across supply chains
+
+Community & Support
+--------------------
+
+.. raw:: html
+
+   <div class="community-links">
+     <a href="https://github.com/anusornc/provchain-org" class="community-link">
+       <h4>📦 GitHub Repository</h4>
+       <p>Source code, issues, and contributions</p>
+     </a>
+     <a href="https://github.com/anusornc/provchain-org/discussions" class="community-link">
+       <h4>💬 Discussions</h4>
+       <p>Community Q&A and feature requests</p>
+     </a>
+     <a href="https://github.com/anusornc/provchain-org/issues" class="community-link">
+       <h4>🐛 Issue Tracker</h4>
+       <p>Bug reports and feature requests</p>
+     </a>
+   </div>
 
 Contributing
 ------------
 
-We welcome contributions! Please see our GitHub repository for details on:
+ProvChainOrg is open source and welcomes contributions:
 
-- Setting up the development environment
-- Code style and conventions
-- Testing requirements
-- Pull request process
+- **Documentation**: Help improve these docs
+- **Code**: Submit bug fixes and new features
+- **Testing**: Help test new releases
+- **Examples**: Share your use cases and implementations
+
+See our `Contributing Guide <https://github.com/anusornc/provchain-org/blob/main/CONTRIBUTING.md>`_ for details.
+
+Research Background
+-------------------
+
+ProvChainOrg is based on the GraphChain research concept:
+
+.. epigraph::
+
+   "GraphChain – A Distributed Database with Explicit Semantics and Chained RDF Graphs"
+   
+   -- Sopek, M., et al. (2018), The 2018 Web Conference
+
+Our implementation extends the original research with production-ready features, comprehensive ontology support, and real-world supply chain use cases.
 
 License
 -------
 
-This project is licensed under the MIT License. See the `LICENSE <https://github.com/anusornc/provchain-org/blob/main/LICENSE>`_ file for details.
+ProvChainOrg is released under the `MIT License <https://github.com/anusornc/provchain-org/blob/main/LICENSE>`_.
 
-Indices and Tables
-==================
+.. raw:: html
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   <div class="footer-note">
+     <p><strong>Ready to get started?</strong> Begin with <a href="foundational/intro-to-provchainorg.html">Introduction to ProvChainOrg</a> or jump straight to <a href="tutorials/first-supply-chain.html">building your first application</a>.</p>
+   </div>

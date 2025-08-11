@@ -80,27 +80,9 @@ else
     exit 1
 fi
 
-# Build PDF documentation (optional)
-echo "📄 Building PDF documentation..."
-if command -v pdflatex &> /dev/null; then
-    sphinx-build -b latex . _build/latex
-    if [ $? -eq 0 ]; then
-        cd _build/latex
-        make
-        cd ../..
-        if [ -f "_build/latex/provchainorg.pdf" ]; then
-            echo "✅ PDF documentation built successfully!"
-            echo "📄 PDF location: _build/latex/provchainorg.pdf"
-        fi
-    else
-        echo "⚠️  Warning: PDF build failed (LaTeX may not be properly configured)"
-    fi
-else
-    echo "⚠️  Warning: pdflatex not found. Skipping PDF generation."
-    echo "   Install LaTeX to enable PDF generation:"
-    echo "   Ubuntu/Debian: sudo apt-get install texlive-latex-recommended texlive-fonts-recommended texlive-latex-extra"
-    echo "   macOS: brew install --cask mactex"
-fi
+# Build PDF documentation (optional) - DISABLED due to Unicode character issues
+echo "⚠️  Skipping PDF generation (Unicode characters not compatible with LaTeX)"
+echo "   HTML documentation provides full functionality"
 
 # Build EPUB documentation (optional)
 echo "📱 Building EPUB documentation..."
