@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use provchain_org::{blockchain::Blockchain, rdf_store::RDFStore, demo, web::server::create_web_server, demo_runner::run_demo_with_args};
+use provchain_org::{blockchain::Blockchain, demo, web::server::create_web_server, demo_runner::run_demo_with_args};
 use std::fs;
 use tracing::info;
 
@@ -50,7 +50,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cli = Cli::parse();
     let mut blockchain = Blockchain::new();
-    let _rdf_store = RDFStore::new();
 
     match cli.command {
         Commands::AddFile { path } => {

@@ -11,7 +11,7 @@ use serde_json::json;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use reqwest::Client;
-use headless_chrome::{Browser, LaunchOptionsBuilder, Tab};
+use fantoccini::{ClientBuilder, Locator};
 use anyhow::Result;
 
 /// Test helper to start a test web server with sample data
@@ -73,21 +73,29 @@ fn add_sample_test_data(blockchain: &mut Blockchain) {
     }
 }
 
-/// Test helper to create browser instance
-fn create_browser() -> Result<Browser> {
-    let options = LaunchOptionsBuilder::default()
-        .headless(true)
-        .window_size(Some((1920, 1080)))
-        .build()?;
+/// Test helper to create browser client
+async fn create_client() -> Result<fantoccini::Client> {
+    let mut caps = serde_json::map::Map::new();
+    let opts = serde_json::json!({
+        "args": ["--headless", "--disable-gpu", "--window-size=1920,1080"]
+    });
+    caps.insert("goog:chromeOptions".to_string(), opts);
     
-    Browser::new(options)
+    Ok(ClientBuilder::native()
+        .capabilities(caps)
+        .connect("http://localhost:9515")
+        .await?)
 }
 
 /// Test helper to wait for element and handle timeouts
-async fn wait_for_element_with_timeout(tab: &Tab, selector: &str, timeout_ms: u64) -> Result<()> {
+async fn wait_for_element_with_timeout(
+    client: &fantoccini::Client, 
+    selector: &str, 
+    timeout_ms: u64
+) -> Result<()> {
     let start = Instant::now();
     while start.elapsed() < Duration::from_millis(timeout_ms) {
-        if tab.find_element(selector).is_ok() {
+        if client.find(Locator::Css(selector)).await.is_ok() {
             return Ok(());
         }
         sleep(Duration::from_millis(100)).await;
@@ -96,17 +104,17 @@ async fn wait_for_element_with_timeout(tab: &Tab, selector: &str, timeout_ms: u6
 }
 
 /// Test helper to simulate user login via UI
-async fn login_via_ui(tab: &Tab, username: &str, password: &str) -> Result<()> {
+async fn login_via_ui(client: &fantoccini::Client, username: &str, password: &str) -> Result<()> {
     // Click login button
-    tab.click_element("#loginBtn")?;
-    wait_for_element_with_timeout(tab, "#loginModal", 2000).await?;
+    client.find(Locator::Css("#loginBtn")).await?.click().await?;
+    wait_for_element_with_timeout(client, "#loginModal", 2000).await?;
     
     // Fill login form
-    tab.type_into_element("#loginUsername", username)?;
-    tab.type_into_element("#loginPassword", password)?;
+    client.find(Locator::Css("#loginUsername")).await?.send_keys(username).await?;
+    client.find(Locator::Css("#loginPassword")).await?.send_keys(password).await?;
     
     // Submit form
-    tab.click_element("#loginForm button[type='submit']")?;
+    client.find(Locator::Css("#loginForm button[type='submit']")).await?.click().await?;
     
     // Wait for login to process
     sleep(Duration::from_millis(2000)).await;
@@ -121,39 +129,38 @@ async fn test_dashboard_functionality() -> Result<()> {
     
     println!("Testing Dashboard Functionality on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate to application
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
     
     // Verify dashboard is active by default
-    let dashboard = tab.wait_for_element("#dashboard.content-section.active")?;
-    assert!(dashboard.get_description()?.contains("Dashboard"));
+    wait_for_element_with_timeout(&client, "#dashboard.content-section.active", 2000).await?;
     
     // Check for stats cards
-    tab.wait_for_element(".stats-grid")?;
-    tab.wait_for_element("#blockHeight")?;
-    tab.wait_for_element("#totalTransactions")?;
-    tab.wait_for_element("#networkPeers")?;
-    tab.wait_for_element("#blockchainStatus")?;
+    wait_for_element_with_timeout(&client, ".stats-grid", 2000).await?;
+    wait_for_element_with_timeout(&client, "#blockHeight", 2000).await?;
+    wait_for_element_with_timeout(&client, "#totalTransactions", 2000).await?;
+    wait_for_element_with_timeout(&client, "#networkPeers", 2000).await?;
+    wait_for_element_with_timeout(&client, "#blockchainStatus", 2000).await?;
     
     // Check for dashboard cards
-    tab.wait_for_element(".dashboard-grid")?;
-    tab.wait_for_element("#recentTransactions")?;
-    tab.wait_for_element("#apiStatus")?;
-    tab.wait_for_element("#lastBlockTime")?;
-    tab.wait_for_element("#validationStatus")?;
+    wait_for_element_with_timeout(&client, ".dashboard-grid", 2000).await?;
+    wait_for_element_with_timeout(&client, "#recentTransactions", 2000).await?;
+    wait_for_element_with_timeout(&client, "#apiStatus", 2000).await?;
+    wait_for_element_with_timeout(&client, "#lastBlockTime", 2000).await?;
+    wait_for_element_with_timeout(&client, "#validationStatus", 2000).await?;
     
     // Login to see actual data
-    login_via_ui(&tab, "admin", "password").await?;
+    login_via_ui(&client, "admin", "password").await?;
     
     // Wait for data to load
     sleep(Duration::from_millis(3000)).await;
     
     // Verify stats are populated (should show numbers, not just "-")
-    let block_height_text = tab.get_element_text("#blockHeight")?;
+    let block_height = client.find(Locator::Css("#blockHeight")).await?;
+    let block_height_text = block_height.html(false).await?;
     assert_ne!(block_height_text, "-", "Block height should be populated");
     
     println!("✓ Dashboard functionality test completed successfully");
@@ -167,33 +174,35 @@ async fn test_block_explorer_functionality() -> Result<()> {
     
     println!("Testing Block Explorer Functionality on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate and login
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
-    login_via_ui(&tab, "admin", "password").await?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
+    login_via_ui(&client, "admin", "password").await?;
     
     // Navigate to blocks section
-    tab.click_element("a[data-section='blocks']")?;
-    tab.wait_for_element("#blocks.content-section.active")?;
+    client.find(Locator::Css("a[data-section='blocks']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#blocks.content-section.active", 2000).await?;
     
     // Check for blocks controls
-    tab.wait_for_element("#blockSearch")?;
-    tab.wait_for_element("#refreshBlocks")?;
-    tab.wait_for_element("#blocksList")?;
+    wait_for_element_with_timeout(&client, "#blockSearch", 2000).await?;
+    wait_for_element_with_timeout(&client, "#refreshBlocks", 2000).await?;
+    wait_for_element_with_timeout(&client, "#blocksList", 2000).await?;
     
     // Test refresh functionality
-    tab.click_element("#refreshBlocks")?;
+    client.find(Locator::Css("#refreshBlocks")).await?.click().await?;
     sleep(Duration::from_millis(2000)).await;
     
     // Test search functionality
-    tab.type_into_element("#blockSearch", "0")?;
+    client.find(Locator::Css("#blockSearch")).await?.send_keys("0").await?;
     sleep(Duration::from_millis(1000)).await;
     
     // Clear search
-    tab.evaluate("document.getElementById('blockSearch').value = ''", false)?;
+    client.execute(
+        "document.getElementById('blockSearch').value = ''",
+        vec![]
+    ).await?;
     sleep(Duration::from_millis(500)).await;
     
     println!("✓ Block Explorer functionality test completed successfully");
@@ -207,43 +216,45 @@ async fn test_product_traceability_interface() -> Result<()> {
     
     println!("Testing Product Traceability Interface on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate and login
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
-    login_via_ui(&tab, "user", "password").await?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
+    login_via_ui(&client, "user", "password").await?;
     
     // Navigate to traceability section
-    tab.click_element("a[data-section='traceability']")?;
-    tab.wait_for_element("#traceability.content-section.active")?;
+    client.find(Locator::Css("a[data-section='traceability']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#traceability.content-section.active", 2000).await?;
     
     // Check for traceability interface elements
-    tab.wait_for_element("#batchId")?;
-    tab.wait_for_element("#productName")?;
-    tab.wait_for_element("#traceProduct")?;
-    tab.wait_for_element("#traceResults")?;
+    wait_for_element_with_timeout(&client, "#batchId", 2000).await?;
+    wait_for_element_with_timeout(&client, "#productName", 2000).await?;
+    wait_for_element_with_timeout(&client, "#traceProduct", 2000).await?;
+    wait_for_element_with_timeout(&client, "#traceResults", 2000).await?;
     
     // Test traceability search with known batch
-    tab.type_into_element("#batchId", "BATCH001")?;
-    tab.type_into_element("#productName", "Coffee")?;
-    tab.click_element("#traceProduct")?;
+    client.find(Locator::Css("#batchId")).await?.send_keys("BATCH001").await?;
+    client.find(Locator::Css("#productName")).await?.send_keys("Coffee").await?;
+    client.find(Locator::Css("#traceProduct")).await?.click().await?;
     
     // Wait for results
     sleep(Duration::from_millis(3000)).await;
     
     // Verify results area is updated
-    let results_element = tab.find_element("#traceResults")?;
-    let results_html = results_element.get_content()?;
+    let results_element = client.find(Locator::Css("#traceResults")).await?;
+    let results_html = results_element.html(false).await?;
     
     // Should not show placeholder anymore
     assert!(!results_html.contains("trace-placeholder"), "Should show actual results, not placeholder");
     
     // Test with invalid batch ID
-    tab.evaluate("document.getElementById('batchId').value = ''", false)?;
-    tab.type_into_element("#batchId", "INVALID_BATCH")?;
-    tab.click_element("#traceProduct")?;
+    client.execute(
+        "document.getElementById('batchId').value = ''",
+        vec![]
+    ).await?;
+    client.find(Locator::Css("#batchId")).await?.send_keys("INVALID_BATCH").await?;
+    client.find(Locator::Css("#traceProduct")).await?.click().await?;
     
     sleep(Duration::from_millis(2000)).await;
     
@@ -258,56 +269,62 @@ async fn test_sparql_query_interface() -> Result<()> {
     
     println!("Testing SPARQL Query Interface on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate and login
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
-    login_via_ui(&tab, "admin", "password").await?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
+    login_via_ui(&client, "admin", "password").await?;
     
     // Navigate to SPARQL section
-    tab.click_element("a[data-section='sparql']")?;
-    tab.wait_for_element("#sparql.content-section.active")?;
+    client.find(Locator::Css("a[data-section='sparql']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#sparql.content-section.active", 2000).await?;
     
     // Check for SPARQL interface elements
-    tab.wait_for_element("#sparqlQuery")?;
-    tab.wait_for_element("#queryTemplates")?;
-    tab.wait_for_element("#executeQuery")?;
-    tab.wait_for_element("#sparqlResults")?;
+    wait_for_element_with_timeout(&client, "#sparqlQuery", 2000).await?;
+    wait_for_element_with_timeout(&client, "#queryTemplates", 2000).await?;
+    wait_for_element_with_timeout(&client, "#executeQuery", 2000).await?;
+    wait_for_element_with_timeout(&client, "#sparqlResults", 2000).await?;
     
     // Test query template selection
-    tab.select_option_by_value("#queryTemplates", "all-triples")?;
+    client.find(Locator::Css("#queryTemplates")).await?.select_by_value("all-triples").await?;
     sleep(Duration::from_millis(500)).await;
     
     // Verify query was populated
-    let query_text = tab.get_element_text("#sparqlQuery")?;
+    let query_element = client.find(Locator::Css("#sparqlQuery")).await?;
+    let query_text = query_element.html(false).await?;
     assert!(!query_text.is_empty(), "Query template should populate the editor");
     
     // Test custom query
-    tab.evaluate("document.getElementById('sparqlQuery').value = ''", false)?;
-    tab.type_into_element("#sparqlQuery", "SELECT * WHERE { ?s ?p ?o } LIMIT 5")?;
+    client.execute(
+        "document.getElementById('sparqlQuery').value = ''",
+        vec![]
+    ).await?;
+    client.find(Locator::Css("#sparqlQuery")).await?.send_keys("SELECT * WHERE { ?s ?p ?o } LIMIT 5").await?;
     
     // Execute query
-    tab.click_element("#executeQuery")?;
+    client.find(Locator::Css("#executeQuery")).await?.click().await?;
     
     // Wait for results
     sleep(Duration::from_millis(3000)).await;
     
     // Check for results
-    let results_element = tab.find_element("#sparqlResults")?;
-    let results_html = results_element.get_content()?;
+    let results_element = client.find(Locator::Css("#sparqlResults")).await?;
+    let results_html = results_element.html(false).await?;
     
     // Should not show placeholder anymore
     assert!(!results_html.contains("results-placeholder"), "Should show query results");
     
     // Test query stats
-    wait_for_element_with_timeout(&tab, "#queryStats", 2000).await?;
+    wait_for_element_with_timeout(&client, "#queryStats", 2000).await?;
     
     // Test invalid query
-    tab.evaluate("document.getElementById('sparqlQuery').value = ''", false)?;
-    tab.type_into_element("#sparqlQuery", "INVALID SPARQL SYNTAX")?;
-    tab.click_element("#executeQuery")?;
+    client.execute(
+        "document.getElementById('sparqlQuery').value = ''",
+        vec![]
+    ).await?;
+    client.find(Locator::Css("#sparqlQuery")).await?.send_keys("INVALID SPARQL SYNTAX").await?;
+    client.find(Locator::Css("#executeQuery")).await?.click().await?;
     
     sleep(Duration::from_millis(2000)).await;
     
@@ -322,47 +339,46 @@ async fn test_transaction_management_interface() -> Result<()> {
     
     println!("Testing Transaction Management Interface on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate and login
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
-    login_via_ui(&tab, "manager", "password").await?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
+    login_via_ui(&client, "manager", "password").await?;
     
     // Navigate to transactions section
-    tab.click_element("a[data-section='transactions']")?;
-    tab.wait_for_element("#transactions.content-section.active")?;
+    client.find(Locator::Css("a[data-section='transactions']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#transactions.content-section.active", 2000).await?;
     
     // Check for transaction interface elements
-    tab.wait_for_element("#addTripleForm")?;
-    tab.wait_for_element("#subject")?;
-    tab.wait_for_element("#predicate")?;
-    tab.wait_for_element("#object")?;
-    tab.wait_for_element("#transactionsList")?;
+    wait_for_element_with_timeout(&client, "#addTripleForm", 2000).await?;
+    wait_for_element_with_timeout(&client, "#subject", 2000).await?;
+    wait_for_element_with_timeout(&client, "#predicate", 2000).await?;
+    wait_for_element_with_timeout(&client, "#object", 2000).await?;
+    wait_for_element_with_timeout(&client, "#transactionsList", 2000).await?;
     
     // Test form validation (empty form)
-    tab.click_element("#addTripleForm button[type='submit']")?;
+    client.find(Locator::Css("#addTripleForm button[type='submit']")).await?.click().await?;
     sleep(Duration::from_millis(500)).await;
     
     // Fill form with valid data
-    tab.type_into_element("#subject", ":testBatch123")?;
-    tab.type_into_element("#predicate", "tc:hasStatus")?;
-    tab.type_into_element("#object", "Testing")?;
+    client.find(Locator::Css("#subject")).await?.send_keys(":testBatch123").await?;
+    client.find(Locator::Css("#predicate")).await?.send_keys("tc:hasStatus").await?;
+    client.find(Locator::Css("#object")).await?.send_keys("Testing").await?;
     
     // Submit form
-    tab.click_element("#addTripleForm button[type='submit']")?;
+    client.find(Locator::Css("#addTripleForm button[type='submit']")).await?.click().await?;
     
     // Wait for submission
     sleep(Duration::from_millis(3000)).await;
     
     // Check if form was cleared (indicates successful submission)
-    let subject_value = tab.get_element_attribute("#subject", "value")?;
+    let _subject_value = client.find(Locator::Css("#subject")).await?.attr("value").await?;
     // Form might be cleared on successful submission
     
     // Check transaction history
-    let transactions_element = tab.find_element("#transactionsList")?;
-    let transactions_html = transactions_element.get_content()?;
+    let transactions_element = client.find(Locator::Css("#transactionsList")).await?;
+    let transactions_html = transactions_element.html(false).await?;
     
     // Should show transactions, not loading message
     assert!(!transactions_html.contains("Loading transactions"), "Should show transaction history");
@@ -378,48 +394,53 @@ async fn test_authentication_flow() -> Result<()> {
     
     println!("Testing Authentication Flow on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate to application
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
     
     // Verify login button is visible
-    tab.wait_for_element("#loginBtn")?;
+    wait_for_element_with_timeout(&client, "#loginBtn", 2000).await?;
     
     // Test login modal
-    tab.click_element("#loginBtn")?;
-    tab.wait_for_element("#loginModal")?;
+    client.find(Locator::Css("#loginBtn")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#loginModal", 2000).await?;
     
     // Test modal close
-    tab.click_element(".modal .close")?;
+    client.find(Locator::Css(".modal .close")).await?.click().await?;
     sleep(Duration::from_millis(500)).await;
     
     // Modal should be hidden
-    let modal_style = tab.get_element_attribute("#loginModal", "style")?;
-    assert!(modal_style.contains("display: none") || modal_style.is_empty());
+    let modal_style = client.find(Locator::Css("#loginModal")).await?.attr("style").await?;
+    assert!(modal_style.map_or(true, |s| s.contains("display: none") || s.is_empty()));
     
     // Test login with invalid credentials
-    tab.click_element("#loginBtn")?;
-    tab.wait_for_element("#loginModal")?;
+    client.find(Locator::Css("#loginBtn")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#loginModal", 2000).await?;
     
-    tab.type_into_element("#loginUsername", "invalid")?;
-    tab.type_into_element("#loginPassword", "invalid")?;
-    tab.click_element("#loginForm button[type='submit']")?;
+    client.find(Locator::Css("#loginUsername")).await?.send_keys("invalid").await?;
+    client.find(Locator::Css("#loginPassword")).await?.send_keys("invalid").await?;
+    client.find(Locator::Css("#loginForm button[type='submit']")).await?.click().await?;
     
     sleep(Duration::from_millis(2000)).await;
     
     // Should still show login button (login failed)
-    tab.wait_for_element("#loginBtn")?;
+    wait_for_element_with_timeout(&client, "#loginBtn", 2000).await?;
     
     // Test login with valid credentials
-    tab.evaluate("document.getElementById('loginUsername').value = ''", false)?;
-    tab.evaluate("document.getElementById('loginPassword').value = ''", false)?;
+    client.execute(
+        "document.getElementById('loginUsername').value = ''",
+        vec![]
+    ).await?;
+    client.execute(
+        "document.getElementById('loginPassword').value = ''",
+        vec![]
+    ).await?;
     
-    tab.type_into_element("#loginUsername", "testuser")?;
-    tab.type_into_element("#loginPassword", "testpass")?;
-    tab.click_element("#loginForm button[type='submit']")?;
+    client.find(Locator::Css("#loginUsername")).await?.send_keys("testuser").await?;
+    client.find(Locator::Css("#loginPassword")).await?.send_keys("testpass").await?;
+    client.find(Locator::Css("#loginForm button[type='submit']")).await?.click().await?;
     
     sleep(Duration::from_millis(2000)).await;
     
@@ -437,12 +458,11 @@ async fn test_navigation_and_routing() -> Result<()> {
     
     println!("Testing Navigation and Routing on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate to application
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
     
     // Test all navigation links
     let nav_sections = vec![
@@ -455,10 +475,11 @@ async fn test_navigation_and_routing() -> Result<()> {
     
     for (section, selector) in nav_sections {
         // Click navigation link
-        tab.click_element(&format!("a[data-section='{}']", section))?;
+        client.find(Locator::Css(&format!("a[data-section='{}']", section)))
+            .await?.click().await?;
         
         // Wait for section to become active
-        tab.wait_for_element(&format!("{}.content-section.active", selector))?;
+        wait_for_element_with_timeout(&client, &format!("{}.content-section.active", selector), 2000).await?;
         
         // Verify other sections are not active
         for (other_section, other_selector) in &[
@@ -469,16 +490,16 @@ async fn test_navigation_and_routing() -> Result<()> {
             ("transactions", "#transactions"),
         ] {
             if *other_section != section {
-                let other_element = tab.find_element(other_selector)?;
-                let class_attr = other_element.get_attribute_value("class")?;
+                let other_element = client.find(Locator::Css(other_selector)).await?;
+                let class_attr = other_element.attr("class").await?;
                 assert!(!class_attr.unwrap_or_default().contains("active"), 
                        "Other sections should not be active");
             }
         }
         
         // Verify navigation link is active
-        let nav_link = tab.find_element(&format!("a[data-section='{}']", section))?;
-        let nav_class = nav_link.get_attribute_value("class")?;
+        let nav_link = client.find(Locator::Css(&format!("a[data-section='{}']", section))).await?;
+        let nav_class = nav_link.attr("class").await?;
         assert!(nav_class.unwrap_or_default().contains("active"), 
                "Navigation link should be active");
         
@@ -496,39 +517,38 @@ async fn test_responsive_design() -> Result<()> {
     
     println!("Testing Responsive Design on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate to application
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
     
     // Test desktop view (default)
-    let navbar = tab.find_element("nav.navbar")?;
-    assert!(navbar.get_description()?.contains("navbar"));
+    let navbar = client.find(Locator::Css("nav.navbar")).await?;
+    assert!(navbar.html(false).await?.contains("navbar"));
     
     // Test tablet view
-    tab.set_viewport_size(768, 1024, None, None, false)?;
+    client.set_window_size(768, 1024).await?;
     sleep(Duration::from_millis(500)).await;
     
     // Verify layout still works
-    tab.wait_for_element("nav.navbar")?;
-    tab.wait_for_element("#dashboard")?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
+    wait_for_element_with_timeout(&client, "#dashboard", 2000).await?;
     
     // Test mobile view
-    tab.set_viewport_size(375, 667, None, None, false)?;
+    client.set_window_size(375, 667).await?;
     sleep(Duration::from_millis(500)).await;
     
     // Verify layout still works
-    tab.wait_for_element("nav.navbar")?;
-    tab.wait_for_element("#dashboard")?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
+    wait_for_element_with_timeout(&client, "#dashboard", 2000).await?;
     
     // Test navigation still works on mobile
-    tab.click_element("a[data-section='blocks']")?;
-    tab.wait_for_element("#blocks.content-section.active")?;
+    client.find(Locator::Css("a[data-section='blocks']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#blocks.content-section.active", 2000).await?;
     
     // Reset to desktop view
-    tab.set_viewport_size(1920, 1080, None, None, false)?;
+    client.set_window_size(1920, 1080).await?;
     sleep(Duration::from_millis(500)).await;
     
     println!("✓ Responsive Design test completed successfully");
@@ -542,51 +562,50 @@ async fn test_error_handling_ui() -> Result<()> {
     
     println!("Testing Error Handling UI on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate and login
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
-    login_via_ui(&tab, "user", "password").await?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
+    login_via_ui(&client, "user", "password").await?;
     
     // Test SPARQL error handling
-    tab.click_element("a[data-section='sparql']")?;
-    tab.wait_for_element("#sparql.content-section.active")?;
+    client.find(Locator::Css("a[data-section='sparql']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#sparql.content-section.active", 2000).await?;
     
     // Enter invalid SPARQL query
-    tab.type_into_element("#sparqlQuery", "INVALID SPARQL SYNTAX")?;
-    tab.click_element("#executeQuery")?;
+    client.find(Locator::Css("#sparqlQuery")).await?.send_keys("INVALID SPARQL SYNTAX").await?;
+    client.find(Locator::Css("#executeQuery")).await?.click().await?;
     
     // Wait for error response
     sleep(Duration::from_millis(3000)).await;
     
     // Check for error indication in results
-    let results_element = tab.find_element("#sparqlResults")?;
-    let results_html = results_element.get_content()?;
+    let results_element = client.find(Locator::Css("#sparqlResults")).await?;
+    let _results_html = results_element.html(false).await?;
     
     // Should show some kind of error indication
     // (Exact error handling depends on implementation)
     
     // Test traceability error handling
-    tab.click_element("a[data-section='traceability']")?;
-    tab.wait_for_element("#traceability.content-section.active")?;
+    client.find(Locator::Css("a[data-section='traceability']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#traceability.content-section.active", 2000).await?;
     
     // Search for non-existent batch
-    tab.type_into_element("#batchId", "NONEXISTENT_BATCH")?;
-    tab.click_element("#traceProduct")?;
+    client.find(Locator::Css("#batchId")).await?.send_keys("NONEXISTENT_BATCH").await?;
+    client.find(Locator::Css("#traceProduct")).await?.click().await?;
     
     sleep(Duration::from_millis(2000)).await;
     
     // Should handle gracefully (no crash)
-    tab.wait_for_element("#traceResults")?;
+    wait_for_element_with_timeout(&client, "#traceResults", 2000).await?;
     
     // Test form validation
-    tab.click_element("a[data-section='transactions']")?;
-    tab.wait_for_element("#transactions.content-section.active")?;
+    client.find(Locator::Css("a[data-section='transactions']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#transactions.content-section.active", 2000).await?;
     
     // Try to submit empty form
-    tab.click_element("#addTripleForm button[type='submit']")?;
+    client.find(Locator::Css("#addTripleForm button[type='submit']")).await?.click().await?;
     sleep(Duration::from_millis(500)).await;
     
     // Form should prevent submission or show validation errors
@@ -603,27 +622,27 @@ async fn test_real_time_updates() -> Result<()> {
     
     println!("Testing Real-time Updates on {}", base_url);
     
-    let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let client = create_client().await?;
     
     // Navigate and login
-    tab.navigate_to(&base_url)?;
-    tab.wait_for_element("nav.navbar")?;
-    login_via_ui(&tab, "admin", "password").await?;
+    client.goto(&base_url).await?;
+    wait_for_element_with_timeout(&client, "nav.navbar", 2000).await?;
+    login_via_ui(&client, "admin", "password").await?;
     
     // Go to dashboard to see stats
-    tab.click_element("a[data-section='dashboard']")?;
-    tab.wait_for_element("#dashboard.content-section.active")?;
+    client.find(Locator::Css("a[data-section='dashboard']")).await?.click().await?;
+    wait_for_element_with_timeout(&client, "#dashboard.content-section.active", 2000).await?;
     
     // Wait for initial data load
     sleep(Duration::from_millis(3000)).await;
     
     // Get initial block height
-    let initial_height = tab.get_element_text("#blockHeight")?;
+    let block_height = client.find(Locator::Css("#blockHeight")).await?;
+    let initial_height = block_height.html(false).await?;
     
     // Add new data via API in background
-    let client = Client::new();
-    let auth_response = client
+    let api_client = Client::new();
+    let auth_response = api_client
         .post(&format!("{}/auth/login", base_url))
         .json(&json!({
             "username": "admin",
@@ -637,7 +656,7 @@ async fn test_real_time_updates() -> Result<()> {
         let token = auth_data["token"].as_str().unwrap_or("");
         
         // Add new triple
-        let _add_response = client
+        let _add_response = api_client
             .post(&format!("{}/api/blockchain/add-triple", base_url))
             .header("Authorization", format!("Bearer {}", token))
             .json(&json!({
@@ -654,7 +673,8 @@ async fn test_real_time_updates() -> Result<()> {
     sleep(Duration::from_millis(5000)).await;
     
     // Check if stats updated (depends on implementation of real-time updates)
-    let updated_height = tab.get_element_text("#blockHeight")?;
+    let updated_block_height = client.find(Locator::Css("#blockHeight")).await?;
+    let updated_height = updated_block_height.html(false).await?;
     
     // Note: This test verifies the UI can handle updates, 
     // actual real-time behavior depends on WebSocket implementation

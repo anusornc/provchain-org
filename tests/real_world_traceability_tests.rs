@@ -274,27 +274,27 @@ mod tests {
         
         // Verify cold chain integrity
         let environmental_conditions = &trace_report.blockchain_trace.environmental_conditions;
-        let temperature_violations = environmental_conditions.iter()
+        let _temperature_violations = environmental_conditions.iter()
             .filter(|c| c.temperature.unwrap_or(0.0) > 8.0) // Vaccine storage limit
             .count();
         
-        assert_eq!(temperature_violations, 0, "Should have no temperature violations");
+        assert_eq!(_temperature_violations, 0, "Should have no temperature violations");
         
         // Verify continuous monitoring
         assert!(environmental_conditions.len() > 10, "Should have continuous temperature monitoring");
         
         // Check for API traceability
-        let api_batches = trace_report.blockchain_trace.ingredient_batches.iter()
+        let _api_batches = trace_report.blockchain_trace.ingredient_batches.iter()
             .filter(|b| b.batch_type == "API")
             .count();
-        assert!(api_batches > 0, "Should trace API (Active Pharmaceutical Ingredient) batches");
+        assert!(_api_batches > 0, "Should trace API (Active Pharmaceutical Ingredient) batches");
         
         // Verify regulatory compliance
         let regulatory_approvals = &trace_report.blockchain_trace.regulatory_approvals;
         assert!(regulatory_approvals.iter().any(|a| a.authority == "FDA"), "Should have FDA approval");
         
         println!("Pharmaceutical compliance test passed: {} environmental readings, {} API batches", 
-                 environmental_conditions.len(), api_batches);
+                 environmental_conditions.len(), _api_batches);
         Ok(())
     }
 
@@ -415,28 +415,28 @@ mod tests {
         )?;
         
         // Test cross-industry queries
-        let cross_industry_suppliers = integrated_engine.find_cross_industry_suppliers()?;
-        assert!(!cross_industry_suppliers.is_empty(), "Should find suppliers serving multiple industries");
+        let _cross_industry_suppliers = integrated_engine.find_cross_industry_suppliers()?;
+        assert!(!_cross_industry_suppliers.is_empty(), "Should find suppliers serving multiple industries");
         
         // Test industry-specific compliance
-        let compliance_report = integrated_engine.generate_compliance_report()?;
-        assert!(compliance_report.food_safety_compliance.is_some(), "Should have food safety compliance");
-        assert!(compliance_report.pharmaceutical_compliance.is_some(), "Should have pharma compliance");
-        assert!(compliance_report.conflict_minerals_compliance.is_some(), "Should have conflict minerals compliance");
+        let _compliance_report = integrated_engine.generate_compliance_report()?;
+        assert!(_compliance_report.food_safety_compliance.is_some(), "Should have food safety compliance");
+        assert!(_compliance_report.pharmaceutical_compliance.is_some(), "Should have pharma compliance");
+        assert!(_compliance_report.conflict_minerals_compliance.is_some(), "Should have conflict minerals compliance");
         
         // Test unified risk assessment
-        let unified_risk = integrated_engine.assess_unified_supply_chain_risk()?;
-        assert!(unified_risk.overall_risk_score >= 0.0 && unified_risk.overall_risk_score <= 1.0, 
+        let _unified_risk = integrated_engine.assess_unified_supply_chain_risk()?;
+        assert!(_unified_risk.overall_risk_score >= 0.0 && _unified_risk.overall_risk_score <= 1.0, 
                 "Unified risk score should be valid");
         
         println!("Multi-industry integration: {} cross-industry suppliers, {:.2} unified risk score", 
-                 cross_industry_suppliers.len(), unified_risk.overall_risk_score);
+                 _cross_industry_suppliers.len(), _unified_risk.overall_risk_score);
         Ok(())
     }
 
     // Helper functions for test data creation
 
-    fn create_large_knowledge_graph_with_duplicates(size: usize, duplicate_rate: f64) -> Result<KnowledgeGraph> {
+    fn create_large_knowledge_graph_with_duplicates(_size: usize, _duplicate_rate: f64) -> Result<KnowledgeGraph> {
         // Implementation would generate large test dataset with controlled duplicates
         todo!("Implement large-scale test data generation")
     }
@@ -466,7 +466,7 @@ mod tests {
         todo!("Implement pharmaceutical blockchain creation")
     }
 
-    fn create_traceability_engine(blockchain: Blockchain) -> Result<TraceabilityEngine> {
+    fn create_traceability_engine(_blockchain: Blockchain) -> Result<TraceabilityEngine> {
         // Implementation would create integrated traceability engine
         todo!("Implement traceability engine creation")
     }
@@ -486,7 +486,7 @@ mod tests {
         todo!("Implement historical quality events")
     }
 
-    fn create_multi_industry_traceability_engine(blockchains: Vec<Blockchain>) -> Result<MultiIndustryTraceabilityEngine> {
+    fn create_multi_industry_traceability_engine(_blockchains: Vec<Blockchain>) -> Result<MultiIndustryTraceabilityEngine> {
         // Implementation would create multi-industry engine
         todo!("Implement multi-industry traceability engine")
     }
@@ -504,7 +504,7 @@ pub struct TraceabilityEngine {
 }
 
 impl TraceabilityEngine {
-    pub fn trace_with_analytics(&self, batch_id: &str) -> Result<TraceabilityReport> {
+    pub fn trace_with_analytics(&self, _batch_id: &str) -> Result<TraceabilityReport> {
         todo!("Implement traceability with analytics")
     }
 }
@@ -570,7 +570,7 @@ pub struct GraphQualityValidator {
 }
 
 impl GraphQualityValidator {
-    pub fn new(graph_db: GraphDatabase) -> Self {
+    pub fn new(_graph_db: GraphDatabase) -> Self {
         todo!("Implement graph quality validator")
     }
 
@@ -594,7 +594,7 @@ pub struct GraphStreamProcessor {
 }
 
 impl GraphStreamProcessor {
-    pub fn process_new_block(&mut self, block_data: &str, block_index: usize) -> Result<GraphUpdateReport> {
+    pub fn process_new_block(&mut self, _block_data: &str, _block_index: usize) -> Result<GraphUpdateReport> {
         todo!("Implement new block processing")
     }
 }
@@ -613,11 +613,11 @@ pub struct QualityPredictor {
 }
 
 impl QualityPredictor {
-    pub fn new(graph_db: GraphDatabase, historical_data: HashMap<String, Vec<QualityEvent>>) -> Self {
+    pub fn new(_graph_db: GraphDatabase, _historical_data: HashMap<String, Vec<QualityEvent>>) -> Self {
         todo!("Implement quality predictor")
     }
 
-    pub fn predict_quality_risk(&self, batch_id: &str) -> Result<QualityPrediction> {
+    pub fn predict_quality_risk(&self, _batch_id: &str) -> Result<QualityPrediction> {
         todo!("Implement quality risk prediction")
     }
 }

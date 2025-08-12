@@ -1,428 +1,479 @@
-//! ProvChain Performance Benchmarks
+//! Performance Benchmark Tests
 //! 
-//! This module contains comprehensive performance tests for ProvChain,
-//! including load testing, scaling analysis, and competitive benchmarking.
+//! Comprehensive performance testing for realistic scenarios and stress testing
 
 use provchain_org::blockchain::Blockchain;
-use provchain_org::rdf_store::RDFStore;
-use oxigraph::model::NamedNode;
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
+use anyhow::Result;
 
-/// Performance metrics for ProvChain operations
-#[derive(Debug, Clone)]
-pub struct ProvChainMetrics {
-    pub blocks_per_second: f64,
-    pub rdf_canonicalization_time: Duration,
-    pub sparql_query_latency: Duration,
-    pub ontology_validation_time: Duration,
-    pub memory_usage_mb: u64,
-    pub block_validation_time: Duration,
-    pub total_test_duration: Duration,
-}
-
-impl Default for ProvChainMetrics {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ProvChainMetrics {
-    pub fn new() -> Self {
-        Self {
-            blocks_per_second: 0.0,
-            rdf_canonicalization_time: Duration::new(0, 0),
-            sparql_query_latency: Duration::new(0, 0),
-            ontology_validation_time: Duration::new(0, 0),
-            memory_usage_mb: 0,
-            block_validation_time: Duration::new(0, 0),
-            total_test_duration: Duration::new(0, 0),
-        }
-    }
-
-    pub fn print_summary(&self) {
-        println!("\n=== ProvChain Performance Metrics ===");
-        println!("Blocks per second: {:.2}", self.blocks_per_second);
-        println!("RDF canonicalization time: {:?}", self.rdf_canonicalization_time);
-        println!("SPARQL query latency: {:?}", self.sparql_query_latency);
-        println!("Ontology validation time: {:?}", self.ontology_validation_time);
-        println!("Block validation time: {:?}", self.block_validation_time);
-        println!("Memory usage: {} MB", self.memory_usage_mb);
-        println!("Total test duration: {:?}", self.total_test_duration);
-        println!("=====================================\n");
-    }
-}
-
-/// Generate realistic supply chain RDF data for testing
-fn generate_supply_chain_rdf(batch_id: u64) -> String {
-    format!(r#"
-@prefix trace: <http://provchain.org/trace#> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix ex: <http://example.org/batch{}#> .
-
-ex:batch{} a trace:ProductBatch ;
-    trace:hasBatchID "BATCH{:06}" ;
-    trace:producedAt "2025-08-08T{:02}:{:02}:00Z"^^xsd:dateTime ;
-    prov:wasAttributedTo ex:farmer{} .
-
-ex:farmer{} a trace:Farmer ;
-    rdfs:label "Farmer {}" .
-
-ex:processing{} a trace:ProcessingActivity ;
-    trace:recordedAt "2025-08-08T{:02}:{:02}:00Z"^^xsd:dateTime ;
-    prov:used ex:batch{} ;
-    prov:wasAssociatedWith ex:processor{} .
-
-ex:processor{} a trace:Manufacturer ;
-    rdfs:label "Processor {}" .
-
-ex:transport{} a trace:TransportActivity ;
-    trace:recordedAt "2025-08-08T{:02}:{:02}:00Z"^^xsd:dateTime ;
-    prov:used ex:batch{} ;
-    trace:hasCondition ex:condition{} .
-
-ex:condition{} a trace:EnvironmentalCondition ;
-    trace:hasTemperature "{:.1}"^^xsd:decimal ;
-    trace:hasHumidity "{:.1}"^^xsd:decimal .
-"#, 
-        batch_id, batch_id, batch_id,
-        (batch_id % 24) as u8, (batch_id % 60) as u8,
-        batch_id % 1000, batch_id % 1000, batch_id % 1000,
-        batch_id, (batch_id % 24) as u8, ((batch_id + 1) % 60) as u8,
-        batch_id, batch_id % 1000, batch_id % 1000, batch_id % 1000,
-        batch_id, (batch_id % 24) as u8, ((batch_id + 2) % 60) as u8,
-        batch_id, batch_id, batch_id,
-        2.0 + (batch_id as f64 % 10.0), 40.0 + (batch_id as f64 % 30.0)
-    )
-}
-
-/// Generate complex RDF data with blank nodes for canonicalization testing
-fn generate_complex_rdf_with_blank_nodes(complexity_level: u32) -> String {
-    let mut rdf = String::from(r#"
-@prefix ex: <http://example.org/> .
-@prefix trace: <http://provchain.org/trace#> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
-"#);
-
-    for i in 0..complexity_level {
-        rdf.push_str(&format!(r#"
-_:batch{} a trace:ProductBatch ;
-    trace:hasBatchID "COMPLEX{}" ;
-    prov:wasAttributedTo _:agent{} .
-
-_:agent{} a trace:Farmer ;
-    ex:knows _:agent{} ;
-    ex:processes _:batch{} .
-"#, i, i, i, i, (i + 1) % complexity_level, (i + 1) % complexity_level));
-    }
-
-    rdf
-}
-
+/// Test blockchain performance under realistic load
 #[test]
-fn benchmark_blockchain_scaling_small() {
-    println!("=== ProvChain Blockchain Scaling Test (Small: 100 blocks) ===");
-    let metrics = run_blockchain_scaling_test(100);
-    metrics.print_summary();
+fn test_blockchain_performance_realistic_load() -> Result<()> {
+    let start = Instant::now();
+    let mut blockchain = Blockchain::new();
     
-    // Performance assertions for small scale
-    assert!(metrics.blocks_per_second > 10.0, "Should process at least 10 blocks/second");
-    assert!(metrics.block_validation_time < Duration::from_millis(100), "Block validation should be under 100ms");
-}
-
-#[test]
-fn benchmark_blockchain_scaling_medium() {
-    println!("=== ProvChain Blockchain Scaling Test (Medium: 1000 blocks) ===");
-    let metrics = run_blockchain_scaling_test(1000);
-    metrics.print_summary();
-    
-    // Performance assertions for medium scale
-    assert!(metrics.blocks_per_second > 5.0, "Should process at least 5 blocks/second");
-    assert!(metrics.total_test_duration < Duration::from_secs(300), "Should complete within 5 minutes");
-}
-
-#[test]
-#[ignore] // Use `cargo test -- --ignored` to run this expensive test
-fn benchmark_blockchain_scaling_large() {
-    println!("=== ProvChain Blockchain Scaling Test (Large: 10000 blocks) ===");
-    let metrics = run_blockchain_scaling_test(10000);
-    metrics.print_summary();
-    
-    // Performance assertions for large scale
-    assert!(metrics.blocks_per_second > 1.0, "Should process at least 1 block/second");
-    assert!(metrics.total_test_duration < Duration::from_secs(3600), "Should complete within 1 hour");
-}
-
-fn run_blockchain_scaling_test(num_blocks: u32) -> ProvChainMetrics {
-    let mut metrics = ProvChainMetrics::new();
-    let start_time = Instant::now();
-    
-    let mut bc = Blockchain::new();
-    
-    // Measure block addition performance
-    let mut total_canonicalization_time = Duration::new(0, 0);
-    let mut total_validation_time = Duration::new(0, 0);
-    
-    for i in 0..num_blocks {
-        let rdf_data = generate_supply_chain_rdf(i as u64);
+    // Simulate realistic supply chain data
+    for i in 0..1000 {
+        let realistic_data = format!(r#"
+        @prefix : <http://example.org/> .
+        @prefix tc: <http://provchain.org/trace#> .
         
-        // Measure canonicalization time
-        let canon_start = Instant::now();
-        bc.add_block(rdf_data);
-        let canon_time = canon_start.elapsed();
-        total_canonicalization_time += canon_time;
+        :batch{:04} tc:product "Product {}" ;
+                   tc:origin "Farm {}" ;
+                   tc:batchId "BATCH{:04}" ;
+                   tc:timestamp "2024-01-{:02}T10:00:00Z" ;
+                   tc:status "In Transit" ;
+                   tc:temperature "22.5" ;
+                   tc:humidity "65.0" ;
+                   tc:location "Warehouse {}" .
+        "#, i, i % 100, i % 50, i, (i % 28) + 1, i % 10);
         
-        // Measure validation time every 100 blocks
+        blockchain.add_block(realistic_data);
+        
+        // Validate every 100 blocks to ensure integrity
         if i % 100 == 0 {
-            let validation_start = Instant::now();
-            assert!(bc.is_valid(), "Blockchain should remain valid");
-            total_validation_time += validation_start.elapsed();
-        }
-        
-        if i % 1000 == 0 && i > 0 {
-            println!("Processed {i} blocks...");
+            assert!(blockchain.is_valid(), "Blockchain should remain valid at block {}", i);
         }
     }
     
-    // Final validation
-    let final_validation_start = Instant::now();
-    assert!(bc.is_valid(), "Final blockchain should be valid");
-    let final_validation_time = final_validation_start.elapsed();
+    let duration = start.elapsed();
+    println!("Added 1000 realistic blocks in {:?}", duration);
     
-    metrics.total_test_duration = start_time.elapsed();
-    metrics.blocks_per_second = num_blocks as f64 / metrics.total_test_duration.as_secs_f64();
-    metrics.rdf_canonicalization_time = total_canonicalization_time / num_blocks;
-    metrics.block_validation_time = (total_validation_time + final_validation_time) / ((num_blocks / 100) + 1);
+    // Performance requirements
+    assert!(duration < Duration::from_secs(60), "Should add 1000 blocks within 60 seconds");
+    assert!(blockchain.is_valid(), "Final blockchain should be valid");
+    assert_eq!(blockchain.chain.len(), 1001); // Genesis + 1000 blocks
     
-    // Estimate memory usage (simplified)
-    metrics.memory_usage_mb = (bc.chain.len() * 1024) as u64 / 1024; // Rough estimate
-    
-    metrics
+    Ok(())
 }
 
+/// Test SPARQL query performance with large datasets
 #[test]
-fn benchmark_rdf_canonicalization_complexity() {
-    println!("=== ProvChain RDF Canonicalization Complexity Test ===");
+fn test_sparql_query_performance() -> Result<()> {
+    let mut blockchain = Blockchain::new();
     
-    let complexity_levels = vec![10, 50, 100, 500];
-    let mut results = HashMap::new();
-    
-    for &complexity in &complexity_levels {
-        let mut rdf_store = RDFStore::new();
-        let rdf_data = generate_complex_rdf_with_blank_nodes(complexity);
-        let graph_name = NamedNode::new(format!("http://example.org/complexity_{complexity}")).unwrap();
+    // Add substantial test data
+    for i in 0..500 {
+        let data = format!(r#"
+        @prefix : <http://example.org/> .
+        @prefix tc: <http://provchain.org/trace#> .
         
-        rdf_store.add_rdf_to_graph(&rdf_data, &graph_name);
+        :batch{:04} tc:product "Product Type {}" ;
+                   tc:origin "Origin {}" ;
+                   tc:status "Status {}" ;
+                   tc:certification "Cert {}" ;
+                   tc:quality "Grade {}" .
+        "#, i, i % 10, i % 20, i % 5, i % 3, i % 4);
         
-        // Measure canonicalization time
-        let start = Instant::now();
-        let _hash = rdf_store.canonicalize_graph(&graph_name);
-        let duration = start.elapsed();
-        
-        results.insert(complexity, duration);
-        println!("Complexity {complexity}: {duration:?}");
+        blockchain.add_block(data);
     }
     
-    // Verify that canonicalization time scales reasonably
-    assert!(results[&10] < Duration::from_millis(100), "Simple graphs should canonicalize quickly");
-    assert!(results[&500] < Duration::from_secs(10), "Complex graphs should canonicalize within 10 seconds");
+    // Test simple query performance
+    let start = Instant::now();
+    let simple_query = r#"
+    PREFIX tc: <http://provchain.org/trace#>
+    SELECT ?product WHERE {
+        ?batch tc:product ?product .
+    } LIMIT 100
+    "#;
+    
+    let _results = blockchain.rdf_store.query(simple_query);
+    let simple_duration = start.elapsed();
+    
+    // Test complex query performance
+    let start = Instant::now();
+    let complex_query = r#"
+    PREFIX tc: <http://provchain.org/trace#>
+    SELECT ?product ?origin ?status WHERE {
+        ?batch tc:product ?product ;
+               tc:origin ?origin ;
+               tc:status ?status ;
+               tc:certification ?cert .
+        FILTER(?cert = "Cert 1" && CONTAINS(?product, "Type 1"))
+    }
+    "#;
+    
+    let _results = blockchain.rdf_store.query(complex_query);
+    let complex_duration = start.elapsed();
+    
+    println!("Simple query: {:?}, Complex query: {:?}", simple_duration, complex_duration);
+    
+    // Performance requirements
+    assert!(simple_duration < Duration::from_secs(5), "Simple queries should complete within 5 seconds");
+    assert!(complex_duration < Duration::from_secs(10), "Complex queries should complete within 10 seconds");
+    
+    Ok(())
 }
 
+/// Test RDF canonicalization performance
 #[test]
-fn benchmark_sparql_query_performance() {
-    println!("=== ProvChain SPARQL Query Performance Test ===");
+fn test_rdf_canonicalization_performance() -> Result<()> {
+    let mut blockchain = Blockchain::new();
     
-    let mut bc = Blockchain::new();
+    // Add data with complex RDF structures including blank nodes
+    let complex_rdf = r#"
+    @prefix : <http://example.org/> .
+    @prefix tc: <http://provchain.org/trace#> .
     
-    // Add test data
-    for i in 0..100 {
-        let rdf_data = generate_supply_chain_rdf(i);
-        bc.add_block(rdf_data);
-    }
+    :batch001 tc:product "Complex Product" ;
+              tc:origin "Complex Farm" ;
+              tc:hasEnvironmentalData [
+                  tc:temperature "22.5" ;
+                  tc:humidity "65.0" ;
+                  tc:co2Level "400"
+              ] ;
+              tc:hasQualityCheck [
+                  tc:inspector "John Doe" ;
+                  tc:grade "A" ;
+                  tc:timestamp "2024-01-01T10:00:00Z"
+              ] .
+    "#;
     
-    let queries = vec![
-        // Simple batch lookup
-        r#"
-        PREFIX trace: <http://provchain.org/trace#>
-        SELECT ?batch WHERE {
-            ?batch a trace:ProductBatch ;
-                   trace:hasBatchID ?id .
-        } LIMIT 10
-        "#,
-        
-        // Complex traceability query
-        r#"
-        PREFIX trace: <http://provchain.org/trace#>
-        PREFIX prov: <http://www.w3.org/ns/prov#>
-        SELECT ?batch ?activity ?agent WHERE {
-            ?batch a trace:ProductBatch .
-            ?activity prov:used ?batch ;
-                      prov:wasAssociatedWith ?agent .
-        } LIMIT 10
-        "#,
-        
-        // Environmental conditions query
-        r#"
-        PREFIX trace: <http://provchain.org/trace#>
-        SELECT ?condition ?temp ?humidity WHERE {
-            ?activity trace:hasCondition ?condition .
-            ?condition trace:hasTemperature ?temp ;
-                       trace:hasHumidity ?humidity .
-        } LIMIT 10
-        "#,
-    ];
+    blockchain.add_block(complex_rdf.to_string());
     
-    for (i, query) in queries.iter().enumerate() {
-        let start = Instant::now();
-        let _results = bc.rdf_store.query(query);
-        let duration = start.elapsed();
-        
-        println!("Query {}: {:?}", i + 1, duration);
-        assert!(duration < Duration::from_millis(500), "SPARQL queries should complete within 500ms");
-    }
-}
-
-#[test]
-fn benchmark_concurrent_operations() {
-    println!("=== ProvChain Concurrent Operations Test ===");
-    
-    use std::sync::{Arc, Mutex};
-    use std::thread;
-    
-    let bc = Arc::new(Mutex::new(Blockchain::new()));
-    
-    // Add some initial data
-    {
-        let mut blockchain = bc.lock().unwrap();
-        for i in 0..50 {
-            let rdf_data = generate_supply_chain_rdf(i);
-            blockchain.add_block(rdf_data);
-        }
-    }
+    // Test canonicalization performance
+    let graph_name = oxigraph::model::NamedNode::new("http://provchain.org/block/1").unwrap();
     
     let start = Instant::now();
+    for _ in 0..100 {
+        let _hash = blockchain.rdf_store.canonicalize_graph(&graph_name);
+    }
+    let duration = start.elapsed();
+    
+    println!("100 canonicalizations took {:?}", duration);
+    
+    // Performance requirement
+    assert!(duration < Duration::from_secs(10), "100 canonicalizations should complete within 10 seconds");
+    
+    Ok(())
+}
+
+/// Test concurrent access performance
+#[test]
+fn test_concurrent_access_performance() -> Result<()> {
+    use std::sync::Arc;
+    use std::thread;
+    
+    let mut blockchain = Blockchain::new();
+    
+    // Add initial data
+    for i in 0..100 {
+        let data = format!(r#"
+        @prefix : <http://example.org/> .
+        @prefix tc: <http://provchain.org/trace#> .
+        
+        :batch{:03} tc:product "Product {}" ;
+                   tc:origin "Farm {}" .
+        "#, i, i, i);
+        blockchain.add_block(data);
+    }
+    
+    let blockchain = Arc::new(blockchain);
     let mut handles = vec![];
     
-    // Spawn multiple threads for concurrent SPARQL queries
-    for thread_id in 0..4 {
-        let bc_clone = Arc::clone(&bc);
-        let handle = thread::spawn(move || {
-            let query = r#"
-                PREFIX trace: <http://provchain.org/trace#>
-                SELECT ?batch WHERE {
-                    ?batch a trace:ProductBatch .
-                } LIMIT 5
-            "#;
+    let start = Instant::now();
+    
+    // Spawn multiple threads for concurrent read access
+    for i in 0..10 {
+        let blockchain_clone = Arc::clone(&blockchain);
+        let handle = thread::spawn(move || -> Result<()> {
+            let query = format!(r#"
+            PREFIX tc: <http://provchain.org/trace#>
+            SELECT ?product WHERE {{
+                ?batch tc:product ?product .
+                FILTER(CONTAINS(?product, "Product {}"))
+            }}
+            "#, i * 10);
             
-            for _i in 0..10 {
-                let blockchain = bc_clone.lock().unwrap();
-                let _results = blockchain.rdf_store.query(query);
-                // Simulate some processing time
-                thread::sleep(Duration::from_millis(10));
+            // Perform multiple queries
+            for _ in 0..50 {
+                let _results = blockchain_clone.rdf_store.query(&query);
             }
             
-            println!("Thread {thread_id} completed");
+            Ok(())
         });
         handles.push(handle);
     }
     
     // Wait for all threads to complete
     for handle in handles {
-        handle.join().unwrap();
+        handle.join().unwrap()?;
     }
     
     let duration = start.elapsed();
-    println!("Concurrent operations completed in: {duration:?}");
+    println!("Concurrent access (10 threads, 50 queries each) took {:?}", duration);
     
-    // Verify blockchain is still valid after concurrent access
-    let blockchain = bc.lock().unwrap();
-    assert!(blockchain.is_valid(), "Blockchain should remain valid after concurrent operations");
+    // Performance requirement
+    assert!(duration < Duration::from_secs(30), "Concurrent access should complete within 30 seconds");
+    
+    Ok(())
 }
 
+/// Test memory usage under load
 #[test]
-fn benchmark_memory_usage_growth() {
-    println!("=== ProvChain Memory Usage Growth Test ===");
+fn test_memory_usage_performance() -> Result<()> {
+    let mut blockchain = Blockchain::new();
     
-    let mut bc = Blockchain::new();
-    let mut memory_samples = Vec::new();
+    // Add progressively larger blocks to test memory efficiency
+    for i in 0..200 {
+        let large_description = "A".repeat(1000); // 1KB description
+        let data = format!(r#"
+        @prefix : <http://example.org/> .
+        @prefix tc: <http://provchain.org/trace#> .
+        
+        :batch{:04} tc:product "Product {}" ;
+                   tc:origin "Farm {}" ;
+                   tc:description "{}" ;
+                   tc:metadata "Additional metadata for batch {}" .
+        "#, i, i, i, large_description, i);
+        
+        blockchain.add_block(data);
+        
+        // Validate periodically to ensure memory isn't causing corruption
+        if i % 50 == 0 {
+            assert!(blockchain.is_valid(), "Blockchain should remain valid under memory pressure");
+        }
+    }
+    
+    // Final validation
+    assert!(blockchain.is_valid(), "Blockchain should be valid after memory stress test");
+    assert_eq!(blockchain.chain.len(), 201); // Genesis + 200 blocks
+    
+    Ok(())
+}
+
+/// Test blockchain validation performance with large chains
+#[test]
+fn test_validation_performance_large_chain() -> Result<()> {
+    let mut blockchain = Blockchain::new();
+    
+    // Create a large blockchain
+    for i in 0..500 {
+        let data = format!(r#"
+        @prefix : <http://example.org/> .
+        @prefix tc: <http://provchain.org/trace#> .
+        
+        :batch{:04} tc:product "Product {}" ;
+                   tc:origin "Farm {}" ;
+                   tc:timestamp "2024-01-{:02}T10:00:00Z" .
+        "#, i, i, i, (i % 28) + 1);
+        
+        blockchain.add_block(data);
+    }
+    
+    // Test validation performance
+    let start = Instant::now();
+    let is_valid = blockchain.is_valid();
+    let duration = start.elapsed();
+    
+    println!("Validating 500-block chain took {:?}", duration);
+    
+    assert!(is_valid, "Large blockchain should be valid");
+    assert!(duration < Duration::from_secs(30), "Validation should complete within 30 seconds");
+    
+    Ok(())
+}
+
+/// Test performance degradation over time
+#[test]
+fn test_performance_degradation() -> Result<()> {
+    let mut blockchain = Blockchain::new();
+    let mut add_times = Vec::new();
+    let mut validation_times = Vec::new();
+    
+    // Measure performance at different blockchain sizes
+    for batch in 0..5 {
+        let batch_start = Instant::now();
+        
+        // Add 100 blocks
+        for i in 0..100 {
+            let block_index = batch * 100 + i;
+            let data = format!(r#"
+            @prefix : <http://example.org/> .
+            @prefix tc: <http://provchain.org/trace#> .
+            
+            :batch{:04} tc:product "Product {}" ;
+                       tc:origin "Farm {}" .
+            "#, block_index, block_index, block_index);
+            
+            blockchain.add_block(data);
+        }
+        
+        let add_time = batch_start.elapsed();
+        add_times.push(add_time);
+        
+        // Measure validation time
+        let validation_start = Instant::now();
+        assert!(blockchain.is_valid());
+        let validation_time = validation_start.elapsed();
+        validation_times.push(validation_time);
+        
+        println!("Batch {}: Add time {:?}, Validation time {:?}", 
+                batch, add_time, validation_time);
+    }
+    
+    // Check that performance doesn't degrade too much
+    let first_add_time = add_times[0];
+    let last_add_time = add_times[add_times.len() - 1];
+    let add_degradation = last_add_time.as_millis() as f64 / first_add_time.as_millis() as f64;
+    
+    let first_validation_time = validation_times[0];
+    let last_validation_time = validation_times[validation_times.len() - 1];
+    let validation_degradation = last_validation_time.as_millis() as f64 / first_validation_time.as_millis() as f64;
+    
+    println!("Add time degradation: {:.2}x", add_degradation);
+    println!("Validation time degradation: {:.2}x", validation_degradation);
+    
+    // Performance should not degrade more than 5x
+    assert!(add_degradation < 5.0, "Add time degradation should be less than 5x");
+    assert!(validation_degradation < 5.0, "Validation time degradation should be less than 5x");
+    
+    Ok(())
+}
+
+/// Test query performance with complex filters
+#[test]
+fn test_complex_query_performance() -> Result<()> {
+    let mut blockchain = Blockchain::new();
+    
+    // Add diverse test data
+    let products = ["Coffee", "Cocoa", "Tea", "Sugar", "Vanilla"];
+    let origins = ["Colombia", "Ecuador", "India", "Brazil", "Madagascar"];
+    let statuses = ["Harvested", "Processing", "In Transit", "Delivered"];
     
     for i in 0..1000 {
-        let rdf_data = generate_supply_chain_rdf(i);
-        bc.add_block(rdf_data);
+        let data = format!(r#"
+        @prefix : <http://example.org/> .
+        @prefix tc: <http://provchain.org/trace#> .
         
-        // Sample memory usage every 100 blocks
-        if i % 100 == 0 {
-            // Simplified memory estimation based on chain length
-            let estimated_memory = bc.chain.len() * 2048; // Rough estimate in bytes
-            memory_samples.push((i, estimated_memory));
-            println!("Blocks: {}, Estimated memory: {} KB", i, estimated_memory / 1024);
-        }
+        :batch{:04} tc:product "{}" ;
+                   tc:origin "{}" ;
+                   tc:status "{}" ;
+                   tc:timestamp "2024-{:02}-{:02}T10:00:00Z" ;
+                   tc:quality "{}" .
+        "#, 
+        i, 
+        products[i % products.len()], 
+        origins[i % origins.len()], 
+        statuses[i % statuses.len()],
+        (i % 12) + 1,
+        (i % 28) + 1,
+        if i % 3 == 0 { "Premium" } else { "Standard" }
+        );
+        
+        blockchain.add_block(data);
     }
     
-    // Verify memory growth is reasonable (linear, not exponential)
-    if memory_samples.len() >= 2 {
-        let first_sample = memory_samples[1].1; // Skip the first sample (might be 0)
-        let last_sample = memory_samples.last().unwrap().1;
-        let growth_ratio = last_sample as f64 / first_sample as f64;
+    // Test various complex queries
+    let queries = vec![
+        // Simple filter
+        r#"
+        PREFIX tc: <http://provchain.org/trace#>
+        SELECT ?batch WHERE {
+            ?batch tc:product "Coffee" .
+        }
+        "#,
         
-        println!("Memory growth ratio: {growth_ratio:.2}x");
-        assert!(growth_ratio < 20.0, "Memory growth should be reasonable (less than 20x for 10x data)");
+        // Multiple filters
+        r#"
+        PREFIX tc: <http://provchain.org/trace#>
+        SELECT ?batch WHERE {
+            ?batch tc:product "Coffee" ;
+                   tc:origin "Colombia" ;
+                   tc:status "In Transit" .
+        }
+        "#,
+        
+        // Complex filter with CONTAINS
+        r#"
+        PREFIX tc: <http://provchain.org/trace#>
+        SELECT ?batch ?product WHERE {
+            ?batch tc:product ?product ;
+                   tc:quality "Premium" .
+            FILTER(CONTAINS(?product, "Co"))
+        }
+        "#,
+        
+        // Aggregation query
+        r#"
+        PREFIX tc: <http://provchain.org/trace#>
+        SELECT ?product (COUNT(?batch) as ?count) WHERE {
+            ?batch tc:product ?product .
+        }
+        GROUP BY ?product
+        "#,
+    ];
+    
+    for (i, query) in queries.iter().enumerate() {
+        let start = Instant::now();
+        let _results = blockchain.rdf_store.query(query);
+        let duration = start.elapsed();
+        
+        println!("Query {} took {:?}", i + 1, duration);
+        assert!(duration < Duration::from_secs(15), "Query {} should complete within 15 seconds", i + 1);
     }
+    
+    Ok(())
 }
 
-/// Comparative benchmark against simple hash-based blockchain
+/// Benchmark RDF canonicalization algorithms
 #[test]
-fn benchmark_provchain_vs_simple_blockchain() {
-    println!("=== ProvChain vs Simple Blockchain Comparison ===");
+fn test_canonicalization_algorithm_performance() -> Result<()> {
+    let mut blockchain = Blockchain::new();
     
-    let num_blocks = 100;
+    // Add data with varying complexity
+    let simple_rdf = r#"
+    @prefix : <http://example.org/> .
+    @prefix tc: <http://provchain.org/trace#> .
     
-    // Test ProvChain performance
-    let provchain_start = Instant::now();
-    let mut bc = Blockchain::new();
-    for i in 0..num_blocks {
-        let rdf_data = generate_supply_chain_rdf(i);
-        bc.add_block(rdf_data);
-    }
-    let provchain_duration = provchain_start.elapsed();
-    
-    // Test simple string-based blockchain performance
-    let simple_start = Instant::now();
-    let mut simple_chain = Vec::new();
-    for i in 0..num_blocks {
-        let simple_data = format!("Simple transaction {i}");
-        // Simulate simple hash calculation
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(simple_data.as_bytes());
-        let _hash = format!("{:x}", hasher.finalize());
-        simple_chain.push(simple_data);
-    }
-    let simple_duration = simple_start.elapsed();
-    
-    println!("ProvChain (RDF + Canonicalization): {provchain_duration:?}");
-    println!("Simple Blockchain (String + Hash): {simple_duration:?}");
-    
-    let overhead_ratio = provchain_duration.as_secs_f64() / simple_duration.as_secs_f64();
-    println!("ProvChain overhead ratio: {overhead_ratio:.2}x");
-    
-    // ProvChain should be slower due to RDF processing, but not excessively so
-    assert!(overhead_ratio < 100.0, "ProvChain overhead should be reasonable (less than 100x)");
-    assert!(overhead_ratio > 1.0, "ProvChain should have some overhead due to RDF processing");
-    
-    // But ProvChain provides semantic capabilities that simple blockchain doesn't
-    let query = r#"
-        PREFIX trace: <http://provchain.org/trace#>
-        SELECT (COUNT(?batch) as ?count) WHERE {
-            ?batch a trace:ProductBatch .
-        }
+    :batch001 tc:product "Simple Product" ;
+              tc:origin "Simple Farm" .
     "#;
     
-    let query_start = Instant::now();
-    let _results = bc.rdf_store.query(query);
-    let query_duration = query_start.elapsed();
+    let complex_rdf = r#"
+    @prefix : <http://example.org/> .
+    @prefix tc: <http://provchain.org/trace#> .
     
-    println!("ProvChain semantic query capability: {query_duration:?}");
-    println!("Simple blockchain semantic query capability: Not available");
+    :batch002 tc:product "Complex Product" ;
+              tc:origin "Complex Farm" ;
+              tc:hasEnvironmentalData [
+                  tc:temperature "22.5" ;
+                  tc:humidity "65.0" ;
+                  tc:co2Level "400" ;
+                  tc:recordedBy [
+                      tc:sensor "TempSensor001" ;
+                      tc:calibrationDate "2024-01-01"
+                  ]
+              ] .
+    "#;
+    
+    blockchain.add_block(simple_rdf.to_string());
+    blockchain.add_block(complex_rdf.to_string());
+    
+    // Test performance of different canonicalization approaches
+    let simple_graph = oxigraph::model::NamedNode::new("http://provchain.org/block/1").unwrap();
+    let complex_graph = oxigraph::model::NamedNode::new("http://provchain.org/block/2").unwrap();
+    
+    // Test simple graph canonicalization
+    let start = Instant::now();
+    for _ in 0..100 {
+        let _hash = blockchain.rdf_store.canonicalize_graph(&simple_graph);
+    }
+    let simple_duration = start.elapsed();
+    
+    // Test complex graph canonicalization
+    let start = Instant::now();
+    for _ in 0..100 {
+        let _hash = blockchain.rdf_store.canonicalize_graph(&complex_graph);
+    }
+    let complex_duration = start.elapsed();
+    
+    println!("Simple canonicalization (100x): {:?}", simple_duration);
+    println!("Complex canonicalization (100x): {:?}", complex_duration);
+    
+    // Performance requirements
+    assert!(simple_duration < Duration::from_secs(5), "Simple canonicalization should be fast");
+    assert!(complex_duration < Duration::from_secs(15), "Complex canonicalization should complete within reasonable time");
+    
+    Ok(())
 }

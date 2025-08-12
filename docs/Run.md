@@ -200,18 +200,18 @@ format = "pretty"
 Execute the comprehensive test suite:
 
 ```bash
-# Run all tests (27 tests across 9 suites)
+# Run all tests
 cargo test
 
+# Run unit tests only (96 tests)
+cargo test --lib
+
 # Run specific test categories
-cargo test --lib                            # Unit tests (12 tests)
 cargo test --test blockchain_tests          # Core blockchain (4 tests)
-cargo test --test rdf_tests                # RDF operations (2 tests)
 cargo test --test canonicalization_tests   # RDF canonicalization (3 tests)
 cargo test --test ontology_integration_tests # Ontology features (5 tests)
-cargo test --test blockchain_with_test_data # Integration tests (3 tests)
-cargo test --test test_data_validation     # Data validation (3 tests)
-cargo test --test demo_tests               # Demo functionality (1 test)
+cargo test --test comprehensive_user_journey_tests # User journey tests (4 tests)
+cargo test --test e2e_api_workflows        # API workflow tests (7 tests)
 
 # Run tests with output
 cargo test -- --nocapture
@@ -219,6 +219,52 @@ cargo test -- --nocapture
 # Run specific test
 cargo test test_ontology_loading
 ```
+
+### Test Results Summary
+
+As of August 12, 2025, the test suite has the following status:
+
+**✅ Unit Tests**: 96/96 tests passing - Core functionality is solid
+**✅ Core Integration Tests**: All passing - System integration works correctly
+**✅ Performance Tests**: All passing - Benchmarking infrastructure is working
+**⚠️ Infrastructure-Dependent Tests**: Some tests failing due to missing dependencies:
+   - E2E Web Interface Tests: Failing due to missing ChromeDriver setup
+   - Security Tests: Failing due to missing web server infrastructure
+   - Ontology Integration Tests: Some failing due to test data dependencies
+
+For detailed test analysis, see [TEST_VALIDATION_RESULTS.md](../tests/TEST_VALIDATION_RESULTS.md) and [FINAL_TEST_ANALYSIS_REPORT.md](../tests/FINAL_TEST_ANALYSIS_REPORT.md).
+
+### Running E2E Tests with Web Server
+
+To run the E2E tests that require a web server, you need to start the server first:
+
+1. **Start the web server in one terminal:**
+   ```bash
+   cargo run --bin provchain-org -- web-server --port 8080
+   ```
+
+2. **Run E2E tests in another terminal:**
+   ```bash
+   # Run API workflow tests (don't require browser)
+   cargo test --test e2e_api_workflows
+
+   # Run user journey tests (don't require browser)
+   cargo test --test comprehensive_user_journey_tests
+   ```
+
+3. **For browser-based tests, you need ChromeDriver:**
+   ```bash
+   # Install ChromeDriver (macOS)
+   brew install --cask chromedriver
+
+   # Start ChromeDriver
+   chromedriver --port=9515 &
+
+   # Run web interface tests
+   cargo test --test e2e_web_interface
+   ```
+
+For more detailed instructions, see the [E2E Testing Guide](E2E_TESTING_GUIDE.md).
 
 ### Development Build
 

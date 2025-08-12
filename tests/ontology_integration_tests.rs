@@ -117,15 +117,17 @@ fn test_environmental_conditions_integration() {
     
     bc.add_block(env_data.into());
     
-    // Query for environmental conditions
+    // Query for environmental conditions across all graphs
     let env_query = r#"
         PREFIX trace: <http://provchain.org/trace#>
         
-        SELECT ?activity ?temp ?humidity WHERE {
-            ?activity a trace:TransportActivity ;
-                      trace:hasCondition ?condition .
-            ?condition trace:hasTemperature ?temp ;
-                       trace:hasHumidity ?humidity .
+        SELECT ?activity ?temp ?humidity ?graph WHERE {
+            GRAPH ?graph {
+                ?activity a trace:TransportActivity ;
+                          trace:hasCondition ?condition .
+                ?condition trace:hasTemperature ?temp ;
+                           trace:hasHumidity ?humidity .
+            }
         }
     "#;
     
@@ -140,6 +142,28 @@ fn test_environmental_conditions_integration() {
             }
         }
         assert!(found_conditions, "Should find environmental conditions in the data");
+    } else {
+        // Fallback: check if the data was stored at all
+        let simple_query = r#"
+            PREFIX trace: <http://provchain.org/trace#>
+            
+            SELECT ?s ?p ?o WHERE {
+                GRAPH ?g {
+                    ?s ?p ?o .
+                    FILTER(?p = trace:hasTemperature || ?p = trace:hasHumidity)
+                }
+            }
+        "#;
+        
+        if let oxigraph::sparql::QueryResults::Solutions(solutions) = bc.rdf_store.query(simple_query) {
+            let mut count = 0;
+            for solution in solutions {
+                if let Ok(_sol) = solution {
+                    count += 1;
+                }
+            }
+            assert!(count > 0, "Should find at least some environmental data properties");
+        }
     }
 }
 
@@ -188,23 +212,25 @@ fn test_supply_chain_traceability() {
     "#;
     bc.add_block(processing_data.into());
     
-    // Query for complete traceability chain
+    // Query for complete traceability chain across all graphs
     let trace_query = r#"
         PREFIX trace: <http://provchain.org/trace#>
         PREFIX prov: <http://www.w3.org/ns/prov#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         
-        SELECT ?batch ?batchId ?derivedFrom ?agent ?agentLabel WHERE {
-            ?batch a trace:ProductBatch ;
-                   trace:hasBatchID ?batchId .
-            
-            OPTIONAL {
-                ?batch trace:lotDerivedFrom ?derivedFrom .
-            }
-            
-            OPTIONAL {
-                ?batch prov:wasAttributedTo ?agent .
-                ?agent rdfs:label ?agentLabel .
+        SELECT ?batch ?batchId ?derivedFrom ?agent ?agentLabel ?graph WHERE {
+            GRAPH ?graph {
+                ?batch a trace:ProductBatch ;
+                       trace:hasBatchID ?batchId .
+                
+                OPTIONAL {
+                    ?batch trace:lotDerivedFrom ?derivedFrom .
+                }
+                
+                OPTIONAL {
+                    ?batch prov:wasAttributedTo ?agent .
+                    ?agent rdfs:label ?agentLabel .
+                }
             }
         }
         ORDER BY ?batchId
@@ -221,5 +247,30 @@ fn test_supply_chain_traceability() {
             }
         }
         assert!(batch_count >= 2, "Should find at least 2 batches in the supply chain");
+    } else {
+        // Fallback: check if any ProductBatch data exists
+        let simple_query = r#"
+            PREFIX trace: <http://provchain.org/trace#>
+            
+            SELECT ?batch ?batchId WHERE {
+                GRAPH ?g {
+                    ?batch a trace:ProductBatch ;
+                           trace:hasBatchID ?batchId .
+                }
+            }
+        "#;
+        
+        if let oxigraph::sparql::QueryResults::Solutions(solutions) = bc.rdf_store.query(simple_query) {
+            let mut count = 0;
+            for solution in solutions {
+                if let Ok(sol) = solution {
+                    if let Some(batch_id) = sol.get("batchId") {
+                        println!("Found batch in fallback: {batch_id}");
+                        count += 1;
+                    }
+                }
+            }
+            assert!(count >= 2, "Should find at least 2 batches in the supply chain (fallback check)");
+        }
     }
 }

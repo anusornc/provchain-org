@@ -28,7 +28,6 @@ pub struct WebServer {
     app_state: AppState,
     auth_state: AuthState,
     port: u16,
-    actual_port: Option<u16>,
 }
 
 impl WebServer {
@@ -38,7 +37,6 @@ impl WebServer {
             app_state: AppState::new(blockchain),
             auth_state: AuthState::new(),
             port,
-            actual_port: None,
         }
     }
 
@@ -181,7 +179,7 @@ impl WebServer {
 pub async fn create_web_server(
     blockchain: Blockchain,
     port: Option<u16>,
-) -> Result<WebServer, Box<dyn std::error::Error>> {
+) -> Result<WebServer, anyhow::Error> {
     let server_port = port.unwrap_or(8080);
     let server = WebServer::new(blockchain, server_port);
     

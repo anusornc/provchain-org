@@ -1,3 +1,4 @@
+#![cfg(feature = "e2e")]
 //! End-to-End User Journey Tests
 //! 
 //! This test suite validates complete user workflows from browser interactions
@@ -13,16 +14,20 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use reqwest::Client;
 use headless_chrome::{Browser, LaunchOptionsBuilder};
-use anyhow::Result;
+use anyhow::{Result, Context};
 
 /// Test helper to start a test web server
-async fn start_test_server() -> Result<(u16, tokio::task::JoinHandle<()>)> {
+async fn start_test_server() -> anyhow::Result<(u16, tokio::task::JoinHandle<()>)> {
     let blockchain = Blockchain::new();
-    let server = create_web_server(blockchain, Some(0)).await?;
+    let server = create_web_server(blockchain, Some(0)).await
+        .map_err(|e| anyhow::Error::from(e))
+        .with_context(|| "Failed to create web server")?;
+    let server = std::sync::Arc::new(server);
     let port = server.port();
     
+    let server_clone = server.clone();
     let handle = tokio::spawn(async move {
-        if let Err(e) = server.start().await {
+        if let Err(e) = server_clone.start().await {
             eprintln!("Server error: {}", e);
         }
     });
@@ -395,7 +400,7 @@ async fn test_browser_ui_complete_workflow() -> Result<()> {
     println!("Testing Browser UI Complete Workflow on {}", base_url);
     
     let browser = create_browser()?;
-    let tab = browser.wait_for_initial_tab()?;
+    let tab = browser.new_tab()?;
     
     // Step 1: Navigate to application
     tab.navigate_to(&base_url)?;

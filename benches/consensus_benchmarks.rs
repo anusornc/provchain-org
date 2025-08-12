@@ -41,7 +41,7 @@ fn bench_block_creation(c: &mut Criterion) {
             |b, _| {
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_data.clone())
                     },
                     |(mut blockchain, data)| {
@@ -76,7 +76,7 @@ fn bench_rdf_canonicalization(c: &mut Criterion) {
             |b| {
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_blocks.clone())
                     },
                     |(mut blockchain, blocks)| {
@@ -190,7 +190,7 @@ fn bench_consensus_comparison(c: &mut Criterion) {
     group.bench_function("provchain_poa", |b| {
         b.iter_batched(
             || {
-                let mut blockchain = Blockchain::new();
+                let blockchain = Blockchain::new();
                 (blockchain, test_data.clone())
             },
             |(mut blockchain, data)| {

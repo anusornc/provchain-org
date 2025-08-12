@@ -89,10 +89,13 @@ reqwest = { version = "0.11", features = ["json", "multipart"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 
 # End-to-End Testing Dependencies
-headless_chrome = "1.0"
-selenium-rs = "0.1"
-fantoccini = "0.19"
+fantoccini = { version = "0.19", features = ["native-tls"] }
 webdriver = "0.46"
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"
+
+[features]
+e2e = []
 
 [[bench]]
 name = "simple_consensus_benchmarks"

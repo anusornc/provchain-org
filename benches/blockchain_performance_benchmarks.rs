@@ -21,7 +21,7 @@ fn bench_blockchain_throughput(c: &mut Criterion) {
                 let test_transactions = generate_transaction_batch(size);
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_transactions.clone())
                     },
                     |(mut blockchain, transactions)| {
@@ -97,7 +97,7 @@ fn bench_memory_efficiency(c: &mut Criterion) {
             |b| {
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_data.clone())
                     },
                     |(mut blockchain, data)| {
@@ -211,7 +211,7 @@ fn bench_rdf_complexity_impact(c: &mut Criterion) {
             |b| {
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_data.clone())
                     },
                     |(mut blockchain, data)| {
@@ -244,7 +244,7 @@ fn bench_hash_computation(c: &mut Criterion) {
             |b, data| {
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, data.clone())
                     },
                     |(mut blockchain, block_data)| {

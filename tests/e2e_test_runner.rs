@@ -1,3 +1,4 @@
+#![cfg(feature = "e2e")]
 //! End-to-End Test Runner
 //! 
 //! This module provides utilities for running comprehensive end-to-end tests

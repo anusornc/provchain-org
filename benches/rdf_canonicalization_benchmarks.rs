@@ -26,7 +26,7 @@ fn bench_canonicalization_complexity(c: &mut Criterion) {
             |b| {
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_graphs.clone())
                     },
                     |(mut blockchain, graphs)| {
@@ -62,7 +62,7 @@ fn bench_blank_node_patterns(c: &mut Criterion) {
             |b| {
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_graphs.clone())
                     },
                     |(mut blockchain, graphs)| {
@@ -95,7 +95,7 @@ fn bench_canonicalization_scaling(c: &mut Criterion) {
                 let test_graph = generate_scaling_test_graph(graph_size);
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_graph.clone())
                     },
                     |(mut blockchain, graph_data)| {
@@ -128,7 +128,7 @@ fn bench_supply_chain_canonicalization(c: &mut Criterion) {
             |b| {
                 b.iter_batched(
                     || {
-                        let mut blockchain = Blockchain::new();
+                        let blockchain = Blockchain::new();
                         (blockchain, test_chains.clone())
                     },
                     |(mut blockchain, chains)| {

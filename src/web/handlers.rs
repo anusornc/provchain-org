@@ -75,23 +75,6 @@ fn validate_sparql_query(query: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_batch_id(batch_id: &str) -> Result<(), String> {
-    if batch_id.is_empty() {
-        return Err("Batch ID cannot be empty".to_string());
-    }
-    
-    if batch_id.len() > 100 {
-        return Err("Batch ID too long (max 100 characters)".to_string());
-    }
-    
-    // Allow alphanumeric, hyphens, and underscores only
-    let batch_id_regex = Regex::new(r"^[a-zA-Z0-9_-]+$").unwrap();
-    if !batch_id_regex.is_match(batch_id) {
-        return Err("Batch ID contains invalid characters (only alphanumeric, hyphens, and underscores allowed)".to_string());
-    }
-    
-    Ok(())
-}
 
 /// Application state shared across handlers
 #[derive(Clone)]

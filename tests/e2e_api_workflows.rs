@@ -53,6 +53,7 @@ async fn get_auth_token(client: &Client, base_url: &str, username: &str, passwor
 }
 
 /// Test helper to create sample RDF data
+#[allow(dead_code)]
 fn create_sample_rdf_data() -> String {
     r#"
 @prefix tc: <http://provchain.org/trace#> .
