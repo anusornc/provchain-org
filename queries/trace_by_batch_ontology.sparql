@@ -47,6 +47,6 @@ SELECT ?batch ?batchId ?activity ?activityType ?agent ?agentType ?timestamp ?con
     }
     
     # Filter for a specific batch ID (change this value as needed)
-    FILTER(?batchId = "UHT001")
+    FILTER(?batchId = "MB001")
 }
 ORDER BY ?timestamp

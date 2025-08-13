@@ -5,6 +5,18 @@
 
 set -e  # Exit on any error
 
+# Function to clean up background processes
+cleanup() {
+    echo "Cleaning up..."
+    if [[ -n "$CHROMEDRIVER_PID" ]]; then
+        kill $CHROMEDRIVER_PID 2>/dev/null || true
+    fi
+    if [[ -n "$SERVER_PID" ]]; then
+        kill $SERVER_PID 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -32,10 +44,48 @@ echo ""
 # Create report directory
 mkdir -p "${E2E_REPORT_DIR}"
 
+# Function to start ChromeDriver
+start_chromedriver() {
+    echo -e "${BLUE}🚀 Starting ChromeDriver...${NC}"
+    
+    # Check if ChromeDriver is installed
+    if ! command -v chromedriver &> /dev/null; then
+        echo -e "${YELLOW}⚠️  ChromeDriver not found. Attempting to start it anyway...${NC}"
+        echo -e "${YELLOW}   Please ensure ChromeDriver is installed and in PATH${NC}"
+        echo -e "${YELLOW}   Run: brew install --cask chromedriver (macOS)${NC}"
+        echo -e "${YELLOW}   Or download from: https://chromedriver.chromium.org/${NC}"
+        return 1
+    fi
+    
+    # Start ChromeDriver in background
+    chromedriver --port=9515 > "${E2E_REPORT_DIR}/chromedriver.log" 2>&1 &
+    CHROMEDRIVER_PID=$!
+    
+    # Wait a moment for ChromeDriver to start
+    sleep 2
+    
+    # Check if ChromeDriver is running
+    if kill -0 $CHROMEDRIVER_PID 2>/dev/null; then
+        echo -e "${GREEN}✅ ChromeDriver started successfully (PID: $CHROMEDRIVER_PID)${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ Failed to start ChromeDriver${NC}"
+        return 1
+    fi
+}
+
 # Function to run tests with timing
 run_test_suite() {
     local test_name="$1"
     local test_file="$2"
+    
+    # Special handling for web interface tests - start ChromeDriver first
+    if [[ "$test_file" == "e2e_web_interface" ]]; then
+        if ! start_chromedriver; then
+            echo -e "${RED}❌ Skipping ${test_name} due to ChromeDriver failure${NC}"
+            return 1
+        fi
+    fi
     
     echo -e "${YELLOW}📋 Running ${test_name}...${NC}"
     local start_time=$(date +%s)
@@ -152,9 +202,10 @@ main() {
     
     # Test suites to run
     declare -a test_suites=(
-        "User Journey Tests:e2e_user_journeys"
+        "User Journey Tests:comprehensive_user_journey_tests"
         "Web Interface Tests:e2e_web_interface" 
         "API Workflow Tests:e2e_api_workflows"
+        "Security Tests:security_tests"
     )
     
     # Run each test suite

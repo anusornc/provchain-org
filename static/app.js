@@ -75,6 +75,10 @@ class ProvChainApp {
             this.traceProduct();
         });
 
+        document.getElementById('enhancedTraceProduct').addEventListener('click', () => {
+            this.enhancedTraceProduct();
+        });
+
         // SPARQL
         document.getElementById('executeQuery').addEventListener('click', () => {
             this.executeSparqlQuery();
@@ -373,6 +377,29 @@ class ProvChainApp {
         }
     }
 
+    async enhancedTraceProduct() {
+        const batchId = document.getElementById('batchId').value.trim();
+        const optimizationLevel = document.getElementById('optimizationLevel').value;
+
+        if (!batchId) {
+            this.showToast('Please enter a batch ID', 'warning');
+            return;
+        }
+
+        const params = new URLSearchParams({ 
+            batch_id: batchId,
+            optimization_level: optimizationLevel
+        });
+
+        const startTime = Date.now();
+        const trace = await this.apiRequest(`/api/products/trace/enhanced?${params}`);
+        const executionTime = Date.now() - startTime;
+
+        if (trace) {
+            this.displayEnhancedTraceResults(trace, executionTime);
+        }
+    }
+
     displayTraceResults(trace) {
         const container = document.getElementById('traceResults');
         container.innerHTML = `
@@ -396,6 +423,86 @@ class ProvChainApp {
                         <span class="detail-label">Certifications</span>
                         <span class="detail-value">${escapeHtml(trace.certifications.join(', ')) || 'None'}</span>
                     </div>
+                </div>
+            </div>
+        `;
+
+        if (trace.environmental_data) {
+            const envData = trace.environmental_data;
+            container.innerHTML += `
+                <div class="environmental-data" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h4><i class="fas fa-leaf"></i> Environmental Data</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 0.5rem;">
+                        ${envData.temperature ? `<div><strong>Temperature:</strong> ${escapeHtml(envData.temperature.toString())}°C</div>` : ''}
+                        ${envData.humidity ? `<div><strong>Humidity:</strong> ${escapeHtml(envData.humidity.toString())}%</div>` : ''}
+                        ${envData.co2_footprint ? `<div><strong>CO2 Footprint:</strong> ${escapeHtml(envData.co2_footprint.toString())} kg</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (trace.timeline && trace.timeline.length > 0) {
+            container.innerHTML += '<div class="timeline">';
+            trace.timeline.forEach((event, index) => {
+                container.innerHTML += `
+                    <div class="timeline-item">
+                        <div class="timeline-icon">${index + 1}</div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-action">${escapeHtml(event.action)}</span>
+                                <span class="timeline-time">${escapeHtml(this.formatDate(event.timestamp))}</span>
+                            </div>
+                            <div class="timeline-details">
+                                <strong>Location:</strong> ${escapeHtml(event.location)}<br>
+                                <strong>Actor:</strong> ${escapeHtml(event.actor)}<br>
+                                ${escapeHtml(event.details)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML += '</div>';
+        } else {
+            container.innerHTML += '<p style="text-align: center; color: #666; margin-top: 2rem;">No timeline events found for this product.</p>';
+        }
+    }
+
+    displayEnhancedTraceResults(trace, executionTime) {
+        const container = document.getElementById('traceResults');
+        container.innerHTML = `
+            <div class="product-info">
+                <h3>${escapeHtml(trace.product_name || 'Unknown Product')}</h3>
+                <p>Batch ID: ${escapeHtml(trace.batch_id || 'Unknown')}</p>
+                <div class="product-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Origin</span>
+                        <span class="detail-value">${escapeHtml(trace.origin || 'Unknown')}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Current Location</span>
+                        <span class="detail-value">${escapeHtml(trace.current_location || 'Unknown')}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value">${escapeHtml(trace.status || 'Unknown')}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Certifications</span>
+                        <span class="detail-value">${escapeHtml(trace.certifications ? trace.certifications.join(', ') : 'None')}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Display optimization information
+        container.innerHTML += `
+            <div class="optimization-info" style="background: #e8f4f8; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                <h4><i class="fas fa-bolt"></i> Enhanced Trace Optimization</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.5rem;">
+                    <div><strong>Optimization Level:</strong> ${escapeHtml(trace.optimization_level?.toString() || 'N/A')}</div>
+                    <div><strong>Execution Time:</strong> ${escapeHtml(executionTime?.toString() || 'N/A')}ms</div>
+                    <div><strong>Path Length:</strong> ${escapeHtml(trace.path_length?.toString() || 'N/A')}</div>
+                    <div><strong>Nodes Visited:</strong> ${escapeHtml(trace.nodes_visited?.toString() || 'N/A')}</div>
                 </div>
             </div>
         `;

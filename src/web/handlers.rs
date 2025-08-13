@@ -1,6 +1,7 @@
 //! HTTP handlers for REST API endpoints
 
 use crate::blockchain::Blockchain;
+use crate::trace_optimization::EnhancedTraceResult;
 use crate::web::models::{
     BlockchainStatus, BlockInfo, TransactionInfo, AddTripleRequest, 
     SparqlQueryRequest, SparqlQueryResponse, ProductTrace,
@@ -181,8 +182,11 @@ pub async fn add_triple(
     Extension(claims): Extension<UserClaims>,
     Json(request): Json<AddTripleRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ApiError>)> {
+    eprintln!("Add triple request: {:?}", request);
+    
     // Validate inputs
     if let Err(e) = validate_uri(&request.subject) {
+        eprintln!("Invalid subject URI: {}", e);
         return Err((
             StatusCode::BAD_REQUEST,
             Json(ApiError {
@@ -194,6 +198,7 @@ pub async fn add_triple(
     }
     
     if let Err(e) = validate_uri(&request.predicate) {
+        eprintln!("Invalid predicate URI: {}", e);
         return Err((
             StatusCode::BAD_REQUEST,
             Json(ApiError {
@@ -207,6 +212,7 @@ pub async fn add_triple(
     // Validate object based on whether it's a URI or literal
     if request.object.starts_with("http://") || request.object.starts_with("https://") {
         if let Err(e) = validate_uri(&request.object) {
+            eprintln!("Invalid object URI: {}", e);
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(ApiError {
@@ -218,6 +224,7 @@ pub async fn add_triple(
         }
     } else {
         if let Err(e) = validate_literal(&request.object) {
+            eprintln!("Invalid object literal: {}", e);
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(ApiError {
@@ -250,6 +257,8 @@ pub async fn add_triple(
         )
     };
     
+    eprintln!("Adding triple data: {}", triple_data);
+    
     // Add to blockchain (this also adds to the internal RDF store)
     blockchain.add_block(triple_data);
     
@@ -257,13 +266,16 @@ pub async fn add_triple(
         .map(|b| b.hash.clone())
         .unwrap_or_else(|| "unknown".to_string());
     
-    Ok(Json(serde_json::json!({
+    let response = serde_json::json!({
         "success": true,
         "block_hash": block_hash,
         "block_index": blockchain.chain.len() - 1,
         "added_by": claims.sub,
         "timestamp": Utc::now()
-    })))
+    });
+    
+    eprintln!("Add triple response: {}", response);
+    Ok(Json(response))
 }
 
 /// Execute SPARQL query
@@ -315,7 +327,10 @@ pub async fn execute_sparql_query(
                         }
                         bindings.push(serde_json::Value::Object(binding));
                     }
-                    Err(_) => continue,
+                    Err(e) => {
+                        eprintln!("Error processing SPARQL solution: {}", e);
+                        continue;
+                    }
                 }
             }
             serde_json::json!({
@@ -339,8 +354,10 @@ pub async fn execute_sparql_query(
     
     let result_count = if let Some(bindings) = results_json.get("results").and_then(|r| r.get("bindings")) {
         bindings.as_array().map(|arr| arr.len()).unwrap_or(0)
-    } else {
+    } else if results_json.get("boolean").is_some() {
         1
+    } else {
+        0
     };
     
     let response = SparqlQueryResponse {
@@ -357,6 +374,18 @@ pub async fn execute_sparql_query(
 pub struct TraceQueryParams {
     batch_id: Option<String>,
     product_name: Option<String>,
+}
+
+/// Query parameters for enhanced product trace
+#[derive(Deserialize)]
+pub struct EnhancedTraceQueryParams {
+    batch_id: String,
+    #[serde(default = "default_optimization_level")]
+    optimization_level: u8,
+}
+
+fn default_optimization_level() -> u8 {
+    1
 }
 
 /// Get product traceability information
@@ -472,6 +501,31 @@ pub async fn get_recent_transactions(
     transactions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
     
     Ok(Json(transactions))
+}
+
+/// Get enhanced product trace with optimization
+pub async fn get_enhanced_product_trace(
+    Query(params): Query<EnhancedTraceQueryParams>,
+    State(app_state): State<AppState>,
+) -> Result<Json<EnhancedTraceResult>, (StatusCode, Json<ApiError>)> {
+    let blockchain = app_state.blockchain.read().await;
+    
+    // Validate optimization level (0-2 are valid)
+    if params.optimization_level > 2 {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ApiError {
+                error: "invalid_optimization_level".to_string(),
+                message: "Optimization level must be between 0 and 2".to_string(),
+                timestamp: Utc::now(),
+            }),
+        ));
+    }
+    
+    // Perform enhanced trace using the SSSP-inspired optimization
+    let trace_result = blockchain.enhanced_trace(&params.batch_id, params.optimization_level);
+    
+    Ok(Json(trace_result))
 }
 
 /// Validate blockchain integrity

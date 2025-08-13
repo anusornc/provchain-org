@@ -227,10 +227,12 @@ As of August 12, 2025, the test suite has the following status:
 **✅ Unit Tests**: 96/96 tests passing - Core functionality is solid
 **✅ Core Integration Tests**: All passing - System integration works correctly
 **✅ Performance Tests**: All passing - Benchmarking infrastructure is working
+**✅ E2E API Workflow Tests**: 7/7 tests passing - API workflows functioning correctly
 **⚠️ Infrastructure-Dependent Tests**: Some tests failing due to missing dependencies:
    - E2E Web Interface Tests: Failing due to missing ChromeDriver setup
    - Security Tests: Failing due to missing web server infrastructure
    - Ontology Integration Tests: Some failing due to test data dependencies
+   - Persistent Storage Tests: Some failing due to test implementation issues
 
 For detailed test analysis, see [TEST_VALIDATION_RESULTS.md](../tests/TEST_VALIDATION_RESULTS.md) and [FINAL_TEST_ANALYSIS_REPORT.md](../tests/FINAL_TEST_ANALYSIS_REPORT.md).
 
@@ -257,12 +259,72 @@ To run the E2E tests that require a web server, you need to start the server fir
    # Install ChromeDriver (macOS)
    brew install --cask chromedriver
 
+   # On macOS, you may need to authorize ChromeDriver in System Preferences
+   # Go to System Preferences > Security & Privacy > General
+   # Click "Allow Anyway" for chromedriver
+
    # Start ChromeDriver
    chromedriver --port=9515 &
 
    # Run web interface tests
    cargo test --test e2e_web_interface
    ```
+
+**Note for macOS Users**: If you see a security warning "chromedriver cannot be opened because the developer cannot be verified," you need to authorize it in System Preferences:
+1. Go to System Preferences > Security & Privacy > General
+2. Click "Allow Anyway" next to the chromedriver message
+3. Try running ChromeDriver again
+
+### Using the E2E Test Script
+
+For a comprehensive end-to-end testing experience with proper setup and reporting, use the provided test script:
+
+```bash
+# Run the complete E2E test suite with reporting
+./scripts/run_e2e_tests.sh
+
+# Run with specific options
+./scripts/run_e2e_tests.sh --help     # Show help
+./scripts/run_e2e_tests.sh --quick    # Run quick test suite
+./scripts/run_e2e_tests.sh --verbose  # Enable verbose output
+./scripts/run_e2e_tests.sh --no-browser # Skip browser tests
+```
+
+The script will:
+- Check prerequisites and build the project
+- Run all E2E test suites in sequence
+- Generate detailed reports in the `test_reports` directory
+- Provide a summary of test results with timing information
+- Handle proper error reporting and exit codes
+
+### When to Use the E2E Test Script vs. Cargo Commands
+
+Both approaches have their specific use cases:
+
+**Use the E2E Test Script When:**
+- Running complete test suite with reporting (CI/CD integration)
+- Quick verification with `--quick` option
+- Need structured test reports and logs
+- Automated testing environments
+
+**Use Cargo Commands When:**
+- Development and debugging with detailed output
+- Running specific test suites
+- Working on individual test cases
+
+For web interface tests, you need both the web server and ChromeDriver running:
+```bash
+# Terminal 1: Start web server
+cargo run --bin provchain-org -- web-server --port 8080
+
+# Terminal 2: Start ChromeDriver
+chromedriver --port=9515
+
+# Terminal 3: Run tests
+cargo test --test e2e_web_interface -- --nocapture
+# OR use the script for complete testing
+./scripts/run_e2e_tests.sh
+```
 
 For more detailed instructions, see the [E2E Testing Guide](E2E_TESTING_GUIDE.md).
 

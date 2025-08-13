@@ -21,6 +21,7 @@ async fn start_test_server_with_data() -> Result<(u16, tokio::task::JoinHandle<(
     // Add sample data for testing
     add_sample_test_data(&mut blockchain);
     
+    // Use port 0 to get an available port
     let server = create_web_server(blockchain, Some(0)).await?;
     let port = server.port();
     
@@ -31,7 +32,7 @@ async fn start_test_server_with_data() -> Result<(u16, tokio::task::JoinHandle<(
     });
     
     // Give server time to start
-    sleep(Duration::from_millis(1000)).await;
+    sleep(Duration::from_millis(5000)).await;
     
     Ok((port, handle))
 }

@@ -346,6 +346,12 @@ body {
     height: fit-content;
 }
 
+.form-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
 .trace-results {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
@@ -353,6 +359,34 @@ body {
     padding: 1.5rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.optimization-info {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.optimization-info h4 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.optimization-info .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.optimization-info .detail-label {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+.optimization-info .detail-value {
+    font-weight: 600;
 }
 
 .trace-placeholder {

@@ -6,7 +6,7 @@ use crate::web::{
     handlers::{
         AppState, health_check, get_blockchain_status, get_block, get_blocks,
         add_triple, execute_sparql_query, get_product_trace, get_recent_transactions,
-        validate_blockchain,
+        validate_blockchain, get_enhanced_product_trace,
     },
 };
 use axum::{
@@ -28,6 +28,7 @@ pub struct WebServer {
     app_state: AppState,
     auth_state: AuthState,
     port: u16,
+    actual_port: Option<u16>,
 }
 
 impl WebServer {
@@ -37,6 +38,7 @@ impl WebServer {
             app_state: AppState::new(blockchain),
             auth_state: AuthState::new(),
             port,
+            actual_port: None,
         }
     }
 
@@ -60,6 +62,7 @@ impl WebServer {
             .route("/api/transactions/recent", get(get_recent_transactions))
             .route("/api/sparql/query", post(execute_sparql_query))
             .route("/api/products/trace", get(get_product_trace))
+            .route("/api/products/trace/enhanced", get(get_enhanced_product_trace))
             .route("/api/blockchain/add-triple", post(add_triple))
             .layer(middleware::from_fn(auth_middleware))
             .with_state(self.app_state.clone());
@@ -156,6 +159,9 @@ impl WebServer {
         info!("Static files served from: ./static/");
 
         let listener = tokio::net::TcpListener::bind(addr).await?;
+        let local_addr = listener.local_addr()?;
+        
+        info!("Web server listening on {}", local_addr);
         
         match axum::serve(listener, app).await {
             Ok(_) => {

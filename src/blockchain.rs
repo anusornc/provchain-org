@@ -2,6 +2,7 @@ use chrono::Utc;
 use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
 use crate::rdf_store::{RDFStore, StorageConfig};
+use crate::trace_optimization::{EnhancedTraceabilitySystem, EnhancedTraceResult};
 use oxigraph::model::NamedNode;
 use std::path::Path;
 use anyhow::Result;
@@ -391,6 +392,12 @@ impl Blockchain {
         } else {
             eprintln!("Warning: Could not load ontology file ontology/traceability.owl.ttl");
         }
+    }
+
+    /// Enhanced trace function applying SSSP-inspired optimization concepts
+    pub fn enhanced_trace(&self, batch_id: &str, optimization_level: u8) -> EnhancedTraceResult {
+        let trace_system = EnhancedTraceabilitySystem::new(self);
+        trace_system.enhanced_trace(batch_id, optimization_level)
     }
 
     pub fn dump(&self) -> String {

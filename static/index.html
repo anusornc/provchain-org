@@ -159,9 +159,22 @@
                                 <label for="productName">Product Name (Optional)</label>
                                 <input type="text" id="productName" placeholder="Enter product name...">
                             </div>
-                            <button id="traceProduct" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Trace Product
-                            </button>
+                            <div class="form-group">
+                                <label for="optimizationLevel">Optimization Level</label>
+                                <select id="optimizationLevel" class="form-select">
+                                    <option value="0">Level 0 - Basic</option>
+                                    <option value="1" selected>Level 1 - Standard</option>
+                                    <option value="2">Level 2 - Advanced</option>
+                                </select>
+                            </div>
+                            <div class="form-buttons">
+                                <button id="traceProduct" class="btn btn-secondary">
+                                    <i class="fas fa-search"></i> Standard Trace
+                                </button>
+                                <button id="enhancedTraceProduct" class="btn btn-primary">
+                                    <i class="fas fa-bolt"></i> Enhanced Trace
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div id="traceResults" class="trace-results">

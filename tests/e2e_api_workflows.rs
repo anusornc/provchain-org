@@ -23,7 +23,7 @@ async fn start_test_server() -> Result<(u16, tokio::task::JoinHandle<()>)> {
     drop(listener); // Release the port for the server to use
     
     let blockchain = Blockchain::new();
-    let server = create_web_server(blockchain, Some(port)).await.map_err(|e| anyhow::anyhow!("Failed to create server: {}", e))?;
+    let server = create_web_server(blockchain, Some(port)).await.map_err(|e| anyhow::anyhow!("Failed to create server: {:?}", e))?;
     
     let handle = tokio::spawn(async move {
         if let Err(e) = server.start().await {

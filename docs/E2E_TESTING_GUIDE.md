@@ -158,6 +158,35 @@ cargo test --test e2e_user_journeys -- --nocapture
 cargo test test_supply_chain_manager_complete_journey
 ```
 
+### When to Use the E2E Test Script vs. Cargo Commands
+
+Both approaches have their specific use cases:
+
+**Use the E2E Test Script When:**
+- Running complete test suite with reporting (CI/CD integration)
+- Quick verification with `--quick` option
+- Need structured test reports and logs
+- Automated testing environments
+
+**Use Cargo Commands When:**
+- Development and debugging with detailed output
+- Running specific test suites
+- Working on individual test cases
+
+For web interface tests, you need both the web server and ChromeDriver running:
+```bash
+# Terminal 1: Start web server
+cargo run --bin provchain-org -- web-server --port 8080
+
+# Terminal 2: Start ChromeDriver
+chromedriver --port=9515
+
+# Terminal 3: Run tests
+cargo test --test e2e_web_interface -- --nocapture
+# OR use the script for complete testing
+./scripts/run_e2e_tests.sh
+```
+
 ### Using the Test Runner
 
 ```rust
