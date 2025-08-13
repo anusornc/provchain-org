@@ -28,7 +28,6 @@ pub struct WebServer {
     app_state: AppState,
     auth_state: AuthState,
     port: u16,
-    actual_port: Option<u16>,
 }
 
 impl WebServer {
@@ -38,7 +37,6 @@ impl WebServer {
             app_state: AppState::new(blockchain),
             auth_state: AuthState::new(),
             port,
-            actual_port: None,
         }
     }
 

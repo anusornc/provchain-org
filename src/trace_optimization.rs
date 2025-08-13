@@ -74,7 +74,7 @@ impl<'a> TracePivotSelector<'a> {
     
     /// Find pivot entities in the current frontier
     /// Pivots are entities with high connectivity to unexplored parts of the graph
-    pub fn find_pivots(&self, frontier: &TraceFrontier, target_entity: &str) -> HashSet<String> {
+    pub fn find_pivots(&self, frontier: &TraceFrontier, _target_entity: &str) -> HashSet<String> {
         let mut pivots = HashSet::new();
         let mut scores = HashMap::new();
         
