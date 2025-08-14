@@ -31,7 +31,13 @@
                         <i class="fas fa-search"></i> SPARQL
                     </a>
                     <a href="#transactions" class="nav-link" data-section="transactions">
-                        <i class="fas fa-exchange-alt"></i> Transactions
+                        <i class="fas fa-exchange-alt"></i> RDF Transactions
+                    </a>
+                    <a href="#wallet" class="nav-link" data-section="wallet">
+                        <i class="fas fa-wallet"></i> Wallet
+                    </a>
+                    <a href="#transaction-management" class="nav-link" data-section="transaction-management">
+                        <i class="fas fa-exchange-alt"></i> Transaction Management
                     </a>
                 </div>
                 <div class="nav-auth">
@@ -261,6 +267,136 @@
                         <h3><i class="fas fa-history"></i> Recent Transactions</h3>
                         <div id="transactionsList" class="transactions-list">
                             <div class="loading">Loading transactions...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wallet Section -->
+            <section id="wallet" class="content-section">
+                <div class="section-header">
+                    <h1><i class="fas fa-wallet"></i> Wallet Management</h1>
+                    <p>Register and manage your blockchain wallet</p>
+                </div>
+
+                <div class="wallet-container">
+                    <div class="wallet-registration">
+                        <h3><i class="fas fa-user-plus"></i> Register New Wallet</h3>
+                        <form id="walletRegistrationForm" class="wallet-form">
+                            <div class="form-group">
+                                <label for="participantName">Participant Name</label>
+                                <input type="text" id="participantName" placeholder="Enter your name or organization name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="participantType">Participant Type</label>
+                                <select id="participantType" class="form-select" required>
+                                    <option value="">Select your role</option>
+                                    <option value="farmer">Farmer/Producer</option>
+                                    <option value="processor">Processor/Manufacturer</option>
+                                    <option value="logistics">Logistics Provider</option>
+                                    <option value="quality_lab">Quality Lab</option>
+                                    <option value="auditor">Auditor</option>
+                                    <option value="retailer">Retailer</option>
+                                    <option value="admin">Administrator</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="participantLocation">Location (Optional)</label>
+                                <input type="text" id="participantLocation" placeholder="Enter your location">
+                            </div>
+                            <div class="form-group">
+                                <label for="contactEmail">Email (Optional)</label>
+                                <input type="email" id="contactEmail" placeholder="Enter your email">
+                            </div>
+                            <div class="form-group">
+                                <label for="contactPhone">Phone (Optional)</label>
+                                <input type="tel" id="contactPhone" placeholder="Enter your phone number">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-wallet"></i> Register Wallet
+                            </button>
+                        </form>
+                    </div>
+                    <div class="wallet-info">
+                        <h3><i class="fas fa-info-circle"></i> Wallet Information</h3>
+                        <div id="walletDetails" class="wallet-details">
+                            <div class="wallet-placeholder">
+                                <i class="fas fa-wallet"></i>
+                                <p>Register a wallet to view your wallet information</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transaction Management Section -->
+            <section id="transaction-management" class="content-section">
+                <div class="section-header">
+                    <h1><i class="fas fa-exchange-alt"></i> Transaction Management</h1>
+                    <p>Create, sign, and submit transactions to the blockchain</p>
+                </div>
+
+                <div class="transactions-container">
+                    <div class="create-transaction">
+                        <h3><i class="fas fa-plus-circle"></i> Create New Transaction</h3>
+                        <form id="createTransactionForm" class="transaction-form">
+                            <div class="form-group">
+                                <label for="transactionType">Transaction Type</label>
+                                <select id="transactionType" class="form-select" required>
+                                    <option value="">Select transaction type</option>
+                                    <option value="production">Production</option>
+                                    <option value="processing">Processing</option>
+                                    <option value="transport">Transport</option>
+                                    <option value="quality">Quality Control</option>
+                                    <option value="transfer">Transfer</option>
+                                    <option value="environmental">Environmental Data</option>
+                                    <option value="compliance">Compliance</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="transactionRdfData">RDF Data (Turtle format)</label>
+                                <textarea id="transactionRdfData" placeholder="Enter RDF data in Turtle format" rows="4" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create Transaction
+                            </button>
+                        </form>
+                    </div>
+                    <div class="sign-transaction">
+                        <h3><i class="fas fa-signature"></i> Sign Transaction</h3>
+                        <form id="signTransactionForm" class="transaction-form">
+                            <div class="form-group">
+                                <label for="signTransactionId">Transaction ID</label>
+                                <input type="text" id="signTransactionId" placeholder="Enter transaction ID" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="signParticipantId">Participant ID</label>
+                                <input type="text" id="signParticipantId" placeholder="Enter your participant ID" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-signature"></i> Sign Transaction
+                            </button>
+                        </form>
+                    </div>
+                    <div class="submit-transaction">
+                        <h3><i class="fas fa-paper-plane"></i> Submit Transaction</h3>
+                        <form id="submitTransactionForm" class="transaction-form">
+                            <div class="form-group">
+                                <label for="submitTransactionId">Transaction ID</label>
+                                <input type="text" id="submitTransactionId" placeholder="Enter transaction ID" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Submit Transaction
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="transaction-info">
+                    <h3><i class="fas fa-info-circle"></i> Transaction Status</h3>
+                    <div id="transactionDetails" class="transaction-details">
+                        <div class="transaction-placeholder">
+                            <i class="fas fa-exchange-alt"></i>
+                            <p>Create, sign, and submit a transaction to view status</p>
                         </div>
                     </div>
                 </div>

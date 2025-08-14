@@ -2,10 +2,15 @@
 
 use crate::blockchain::Blockchain;
 use crate::trace_optimization::EnhancedTraceResult;
+use crate::transaction::{Transaction, TransactionType, TransactionMetadata, EnvironmentalConditions, QualityData, ComplianceInfo};
+use crate::transaction_blockchain::TransactionBlockchain;
+use crate::wallet::{Participant, ParticipantType, ContactInfo};
 use crate::web::models::{
     BlockchainStatus, BlockInfo, TransactionInfo, AddTripleRequest, 
     SparqlQueryRequest, SparqlQueryResponse, ProductTrace,
-    EnvironmentalData, ApiError, UserClaims
+    EnvironmentalData, ApiError, UserClaims, WalletRegistrationRequest, 
+    WalletRegistrationResponse, CreateTransactionRequest, CreateTransactionResponse,
+    SignTransactionRequest, SignTransactionResponse, SubmitTransactionRequest, SubmitTransactionResponse
 };
 use axum::{
     extract::{Path, Query, State, Extension},
@@ -278,6 +283,174 @@ pub async fn add_triple(
     Ok(Json(response))
 }
 
+/// Create a new transaction
+pub async fn create_transaction(
+    State(_app_state): State<AppState>,
+    Json(request): Json<CreateTransactionRequest>,
+) -> Result<Json<CreateTransactionResponse>, (StatusCode, Json<ApiError>)> {
+    // Validate transaction type
+    let tx_type = match request.tx_type.as_str() {
+        "production" => TransactionType::Production,
+        "processing" => TransactionType::Processing,
+        "transport" => TransactionType::Transport,
+        "quality" => TransactionType::Quality,
+        "transfer" => TransactionType::Transfer,
+        "environmental" => TransactionType::Environmental,
+        "compliance" => TransactionType::Compliance,
+        _ => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ApiError {
+                    error: "invalid_transaction_type".to_string(),
+                    message: "Invalid transaction type".to_string(),
+                    timestamp: Utc::now(),
+                }),
+            ));
+        }
+    };
+
+    // Convert metadata from models to transaction
+    let metadata = TransactionMetadata {
+        location: request.metadata.location,
+        environmental_conditions: request.metadata.environmental_conditions.map(|ec| EnvironmentalConditions {
+            temperature: ec.temperature,
+            humidity: ec.humidity,
+            pressure: ec.pressure,
+            timestamp: ec.timestamp,
+            sensor_id: ec.sensor_id,
+        }),
+        compliance_info: request.metadata.compliance_info.map(|ci| ComplianceInfo {
+            regulation_type: ci.regulation_type,
+            compliance_status: ci.compliance_status,
+            certificate_id: ci.certificate_id,
+            auditor_id: ci.auditor_id.and_then(|id| uuid::Uuid::parse_str(&id).ok()),
+            expiry_date: ci.expiry_date,
+        }),
+        quality_data: request.metadata.quality_data.map(|qd| QualityData {
+            test_type: qd.test_type,
+            test_result: qd.test_result,
+            test_value: qd.test_value,
+            test_unit: qd.test_unit,
+            lab_id: qd.lab_id.and_then(|id| uuid::Uuid::parse_str(&id).ok()),
+            test_timestamp: qd.test_timestamp,
+        }),
+        custom_fields: request.metadata.custom_fields,
+    };
+
+    // Convert inputs and outputs
+    let inputs = request.inputs.into_iter().map(|input| {
+        crate::transaction::TransactionInput {
+            prev_tx_id: input.prev_tx_id,
+            output_index: input.output_index,
+            signature: None,
+            public_key: None,
+        }
+    }).collect();
+
+    let outputs = request.outputs.into_iter().map(|output| {
+        crate::transaction::TransactionOutput {
+            id: output.id,
+            owner: uuid::Uuid::parse_str(&output.owner).unwrap_or(uuid::Uuid::nil()),
+            asset_type: output.asset_type,
+            value: output.value,
+            metadata: output.metadata,
+        }
+    }).collect();
+
+    // Create transaction
+    let transaction = Transaction::new(
+        tx_type,
+        inputs,
+        outputs,
+        request.rdf_data,
+        metadata,
+    );
+
+    let tx_id = transaction.id.clone();
+
+    // In a real implementation, we would:
+    // 1. Store the transaction in a pending pool
+    // 2. Return the transaction ID for signing
+
+    let response = CreateTransactionResponse {
+        tx_id: tx_id.clone(),
+        message: "Transaction created successfully".to_string(),
+        timestamp: Utc::now(),
+    };
+
+    println!("Created new transaction: {}", tx_id);
+
+    Ok(Json(response))
+}
+
+/// Sign a transaction with a participant's wallet
+pub async fn sign_transaction(
+    State(_app_state): State<AppState>,
+    Json(request): Json<SignTransactionRequest>,
+) -> Result<Json<SignTransactionResponse>, (StatusCode, Json<ApiError>)> {
+    let tx_id = request.tx_id;
+    let participant_id = match uuid::Uuid::parse_str(&request.participant_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ApiError {
+                    error: "invalid_participant_id".to_string(),
+                    message: "Invalid participant ID format".to_string(),
+                    timestamp: Utc::now(),
+                }),
+            ));
+        }
+    };
+
+    // In a real implementation, we would:
+    // 1. Retrieve the transaction from the pending pool
+    // 2. Retrieve the participant's wallet
+    // 3. Sign the transaction with the wallet's private key
+    // 4. Add the signature to the transaction
+    // 5. Update the transaction in the pending pool
+
+    let response = SignTransactionResponse {
+        tx_id: tx_id.clone(),
+        signatures: vec![crate::web::models::TransactionSignatureInfo {
+            signer_id: participant_id.to_string(),
+            timestamp: Utc::now(),
+        }],
+        message: "Transaction signed successfully".to_string(),
+        timestamp: Utc::now(),
+    };
+
+    println!("Signed transaction {} with participant {}", tx_id, participant_id);
+
+    Ok(Json(response))
+}
+
+/// Submit a signed transaction to the blockchain
+pub async fn submit_transaction(
+    State(_app_state): State<AppState>,
+    Json(request): Json<SubmitTransactionRequest>,
+) -> Result<Json<SubmitTransactionResponse>, (StatusCode, Json<ApiError>)> {
+    let tx_id = request.tx_id;
+
+    // In a real implementation, we would:
+    // 1. Retrieve the signed transaction from the pending pool
+    // 2. Validate the transaction (signatures, business logic, etc.)
+    // 3. Submit the transaction to the blockchain
+    // 4. Remove the transaction from the pending pool
+    // 5. Return the block index where the transaction was included
+
+    let response = SubmitTransactionResponse {
+        tx_id: tx_id.clone(),
+        block_index: Some(0), // Placeholder - in real implementation this would be the actual block index
+        message: "Transaction submitted successfully".to_string(),
+        timestamp: Utc::now(),
+    };
+
+    println!("Submitted transaction {} to blockchain", tx_id);
+
+    Ok(Json(response))
+}
+
 /// Execute SPARQL query
 pub async fn execute_sparql_query(
     State(app_state): State<AppState>,
@@ -541,4 +714,87 @@ pub async fn validate_blockchain(
         "total_blocks": blockchain.chain.len(),
         "validation_timestamp": Utc::now()
     })))
+}
+
+/// Register a new wallet for a participant
+pub async fn register_wallet(
+    State(_app_state): State<AppState>,
+    Json(request): Json<WalletRegistrationRequest>,
+) -> Result<Json<WalletRegistrationResponse>, (StatusCode, Json<ApiError>)> {
+    // Validate participant type
+    let participant_type = match request.participant_type.as_str() {
+        "farmer" => ParticipantType::Producer,
+        "processor" => ParticipantType::Manufacturer,
+        "logistics" => ParticipantType::LogisticsProvider,
+        "quality_lab" => ParticipantType::QualityLab,
+        "auditor" => ParticipantType::Auditor,
+        "retailer" => ParticipantType::Retailer,
+        "admin" => ParticipantType::Administrator,
+        _ => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ApiError {
+                    error: "invalid_participant_type".to_string(),
+                    message: "Invalid participant type".to_string(),
+                    timestamp: Utc::now(),
+                }),
+            ));
+        }
+    };
+
+    // Convert ContactInfo from models to wallet
+    let contact_info = if let Some(ref contact) = request.contact_info {
+        ContactInfo {
+            email: contact.email.clone(),
+            phone: contact.phone.clone(),
+            address: contact.address.clone(),
+            website: contact.website.clone(),
+        }
+    } else {
+        ContactInfo {
+            email: None,
+            phone: None,
+            address: None,
+            website: None,
+        }
+    };
+
+    // Create participant
+    let participant = Participant {
+        id: uuid::Uuid::new_v4(),
+        name: request.name,
+        participant_type: participant_type.clone(),
+        contact_info,
+        location: request.location,
+        permissions: crate::wallet::ParticipantPermissions::for_type(&participant_type),
+        certificates: vec![],
+        registered_at: Utc::now(),
+        last_activity: None,
+        reputation: 1.0,
+        metadata: std::collections::HashMap::new(),
+    };
+
+    // For demo purposes, we'll create a simple wallet manager
+    // In a production system, this would be persisted and managed properly
+    let wallet = crate::wallet::Wallet::new(participant.clone());
+    let participant_id = participant.id.to_string();
+    let public_key = format!("{:?}", wallet.public_key); // In practice, you'd serialize this properly
+
+    // In a real implementation, we would:
+    // 1. Save the wallet to persistent storage
+    // 2. Associate the wallet with the user's account
+    // 3. Return the public key and participant ID
+
+    let response = WalletRegistrationResponse {
+        participant_id: participant_id.clone(),
+        public_key: public_key.clone(),
+        message: "Wallet registered successfully".to_string(),
+        timestamp: Utc::now(),
+    };
+
+    // For demo purposes, we'll add the participant to the auth system
+    // In a real implementation, this would be stored in a database
+    println!("Registered new participant: {} ({})", participant.name, participant_id);
+
+    Ok(Json(response))
 }

@@ -6,7 +6,8 @@ use crate::web::{
     handlers::{
         AppState, health_check, get_blockchain_status, get_block, get_blocks,
         add_triple, execute_sparql_query, get_product_trace, get_recent_transactions,
-        validate_blockchain, get_enhanced_product_trace,
+        validate_blockchain, get_enhanced_product_trace, register_wallet,
+        create_transaction, sign_transaction, submit_transaction,
     },
 };
 use axum::{
@@ -62,6 +63,10 @@ impl WebServer {
             .route("/api/products/trace", get(get_product_trace))
             .route("/api/products/trace/enhanced", get(get_enhanced_product_trace))
             .route("/api/blockchain/add-triple", post(add_triple))
+            .route("/api/wallet/register", post(register_wallet))
+            .route("/api/transactions/create", post(create_transaction))
+            .route("/api/transactions/sign", post(sign_transaction))
+            .route("/api/transactions/submit", post(submit_transaction))
             .layer(middleware::from_fn(auth_middleware))
             .with_state(self.app_state.clone());
 
@@ -146,6 +151,10 @@ impl WebServer {
         info!("API endpoints available:");
         info!("  GET  /health - Health check");
         info!("  POST /auth/login - Authentication");
+        info!("  POST /api/wallet/register - Register new wallet");
+        info!("  POST /api/transactions/create - Create new transaction");
+        info!("  POST /api/transactions/sign - Sign transaction");
+        info!("  POST /api/transactions/submit - Submit transaction to blockchain");
         info!("  GET  /api/blockchain/status - Blockchain status");
         info!("  GET  /api/blockchain/blocks - All blocks");
         info!("  GET  /api/blockchain/blocks/:index - Specific block");

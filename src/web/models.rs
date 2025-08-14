@@ -147,3 +147,144 @@ impl std::fmt::Display for ActorRole {
         }
     }
 }
+
+/// Wallet registration request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WalletRegistrationRequest {
+    pub name: String,
+    pub participant_type: String,
+    pub contact_info: Option<ContactInfo>,
+    pub location: Option<String>,
+}
+
+/// Contact information for participants
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContactInfo {
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub address: Option<String>,
+    pub website: Option<String>,
+}
+
+/// Wallet registration response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WalletRegistrationResponse {
+    pub participant_id: String,
+    pub public_key: String,
+    pub message: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Transaction creation request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateTransactionRequest {
+    pub tx_type: String,
+    pub inputs: Vec<TransactionInput>,
+    pub outputs: Vec<TransactionOutput>,
+    pub rdf_data: String,
+    pub metadata: TransactionMetadata,
+}
+
+/// Transaction input
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionInput {
+    pub prev_tx_id: String,
+    pub output_index: u32,
+}
+
+/// Transaction output
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionOutput {
+    pub id: String,
+    pub owner: String, // Participant ID
+    pub asset_type: String,
+    pub value: f64,
+    pub metadata: std::collections::HashMap<String, String>,
+}
+
+/// Transaction metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionMetadata {
+    pub location: Option<String>,
+    pub environmental_conditions: Option<EnvironmentalConditions>,
+    pub compliance_info: Option<ComplianceInfo>,
+    pub quality_data: Option<QualityData>,
+    pub custom_fields: std::collections::HashMap<String, String>,
+}
+
+/// Environmental conditions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnvironmentalConditions {
+    pub temperature: Option<f64>,
+    pub humidity: Option<f64>,
+    pub pressure: Option<f64>,
+    pub timestamp: DateTime<Utc>,
+    pub sensor_id: Option<String>,
+}
+
+/// Compliance information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ComplianceInfo {
+    pub regulation_type: String,
+    pub compliance_status: String,
+    pub certificate_id: Option<String>,
+    pub auditor_id: Option<String>, // Participant ID
+    pub expiry_date: Option<DateTime<Utc>>,
+}
+
+/// Quality data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityData {
+    pub test_type: String,
+    pub test_result: String,
+    pub test_value: Option<f64>,
+    pub test_unit: Option<String>,
+    pub lab_id: Option<String>, // Participant ID
+    pub test_timestamp: DateTime<Utc>,
+}
+
+/// Transaction creation response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateTransactionResponse {
+    pub tx_id: String,
+    pub message: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Transaction signing request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignTransactionRequest {
+    pub tx_id: String,
+    pub participant_id: String,
+}
+
+/// Transaction signing response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignTransactionResponse {
+    pub tx_id: String,
+    pub signatures: Vec<TransactionSignatureInfo>,
+    pub message: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Transaction signature information
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionSignatureInfo {
+    pub signer_id: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Transaction submission request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubmitTransactionRequest {
+    pub tx_id: String,
+}
+
+/// Transaction submission response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubmitTransactionResponse {
+    pub tx_id: String,
+    pub block_index: Option<usize>,
+    pub message: String,
+    pub timestamp: DateTime<Utc>,
+}

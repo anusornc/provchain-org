@@ -93,6 +93,28 @@ class ProvChainApp {
             e.preventDefault();
             this.addTriple();
         });
+
+        // Transaction Management
+        document.getElementById('createTransactionForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.createTransaction();
+        });
+
+        document.getElementById('signTransactionForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.signTransaction();
+        });
+
+        document.getElementById('submitTransactionForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.submitTransaction();
+        });
+
+        // Wallet
+        document.getElementById('walletRegistrationForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.registerWallet();
+        });
     }
 
     // Authentication Methods
@@ -767,6 +789,235 @@ ORDER BY ?timestamp`
 
     loadDashboard() {
         this.showSection('dashboard');
+    }
+
+    // Wallet Methods
+    async registerWallet() {
+        const name = document.getElementById('participantName').value.trim();
+        const type = document.getElementById('participantType').value;
+        const location = document.getElementById('participantLocation').value.trim();
+        const email = document.getElementById('contactEmail').value.trim();
+        const phone = document.getElementById('contactPhone').value.trim();
+
+        if (!name || !type) {
+            this.showToast('Please fill in all required fields', 'warning');
+            return;
+        }
+
+        // Prepare contact info
+        const contactInfo = {};
+        if (email) contactInfo.email = email;
+        if (phone) contactInfo.phone = phone;
+
+        const requestData = {
+            name: name,
+            participant_type: type,
+            location: location || undefined,
+            contact_info: Object.keys(contactInfo).length > 0 ? contactInfo : undefined
+        };
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/wallet/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.displayWalletInfo(result);
+                this.showToast('Wallet registered successfully!', 'success');
+                
+                // Clear form
+                document.getElementById('walletRegistrationForm').reset();
+            } else {
+                const error = await response.json();
+                this.showToast(`Wallet registration failed: ${error.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('Wallet registration error:', error);
+            this.showToast('Wallet registration failed. Please try again.', 'error');
+        }
+    }
+
+    displayWalletInfo(walletInfo) {
+        const container = document.getElementById('walletDetails');
+        container.innerHTML = `
+            <div class="wallet-info-content">
+                <div class="wallet-info-item">
+                    <span class="wallet-info-label">Participant ID</span>
+                    <span class="wallet-info-value">${escapeHtml(walletInfo.participant_id)}</span>
+                </div>
+                <div class="wallet-info-item">
+                    <span class="wallet-info-label">Public Key</span>
+                    <span class="wallet-info-value">${escapeHtml(walletInfo.public_key)}</span>
+                </div>
+                <div class="wallet-info-item">
+                    <span class="wallet-info-label">Message</span>
+                    <span class="wallet-info-value">${escapeHtml(walletInfo.message)}</span>
+                </div>
+                <div class="wallet-info-item">
+                    <span class="wallet-info-label">Registration Time</span>
+                    <span class="wallet-info-value">${escapeHtml(this.formatDate(walletInfo.timestamp))}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Transaction Management Methods
+    async createTransaction() {
+        const txType = document.getElementById('transactionType').value;
+        const rdfData = document.getElementById('transactionRdfData').value.trim();
+
+        if (!txType || !rdfData) {
+            this.showToast('Please fill in all required fields', 'warning');
+            return;
+        }
+
+        const requestData = {
+            tx_type: txType,
+            inputs: [],
+            outputs: [],
+            rdf_data: rdfData,
+            metadata: {
+                custom_fields: {}
+            }
+        };
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/transactions/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.displayTransactionInfo(result);
+                this.showToast('Transaction created successfully!', 'success');
+                
+                // Clear form
+                document.getElementById('createTransactionForm').reset();
+            } else {
+                const error = await response.json();
+                this.showToast(`Transaction creation failed: ${error.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('Transaction creation error:', error);
+            this.showToast('Transaction creation failed. Please try again.', 'error');
+        }
+    }
+
+    async signTransaction() {
+        const txId = document.getElementById('signTransactionId').value.trim();
+        const participantId = document.getElementById('signParticipantId').value.trim();
+
+        if (!txId || !participantId) {
+            this.showToast('Please fill in all required fields', 'warning');
+            return;
+        }
+
+        const requestData = {
+            tx_id: txId,
+            participant_id: participantId
+        };
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/transactions/sign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.displayTransactionInfo(result);
+                this.showToast('Transaction signed successfully!', 'success');
+                
+                // Clear form
+                document.getElementById('signTransactionForm').reset();
+            } else {
+                const error = await response.json();
+                this.showToast(`Transaction signing failed: ${error.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('Transaction signing error:', error);
+            this.showToast('Transaction signing failed. Please try again.', 'error');
+        }
+    }
+
+    async submitTransaction() {
+        const txId = document.getElementById('submitTransactionId').value.trim();
+
+        if (!txId) {
+            this.showToast('Please enter a transaction ID', 'warning');
+            return;
+        }
+
+        const requestData = {
+            tx_id: txId
+        };
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/transactions/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.displayTransactionInfo(result);
+                this.showToast('Transaction submitted successfully!', 'success');
+                
+                // Clear form
+                document.getElementById('submitTransactionForm').reset();
+            } else {
+                const error = await response.json();
+                this.showToast(`Transaction submission failed: ${error.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('Transaction submission error:', error);
+            this.showToast('Transaction submission failed. Please try again.', 'error');
+        }
+    }
+
+    displayTransactionInfo(transactionInfo) {
+        const container = document.getElementById('transactionDetails');
+        container.innerHTML = `
+            <div class="transaction-info-content">
+                <div class="transaction-info-item">
+                    <span class="transaction-info-label">Transaction ID</span>
+                    <span class="transaction-info-value">${escapeHtml(transactionInfo.tx_id)}</span>
+                </div>
+                <div class="transaction-info-item">
+                    <span class="transaction-info-label">Message</span>
+                    <span class="transaction-info-value">${escapeHtml(transactionInfo.message)}</span>
+                </div>
+                ${transactionInfo.block_index !== undefined ? `
+                <div class="transaction-info-item">
+                    <span class="transaction-info-label">Block Index</span>
+                    <span class="transaction-info-value">${escapeHtml(transactionInfo.block_index.toString())}</span>
+                </div>
+                ` : ''}
+                <div class="transaction-info-item">
+                    <span class="transaction-info-label">Timestamp</span>
+                    <span class="transaction-info-value">${escapeHtml(this.formatDate(transactionInfo.timestamp))}</span>
+                </div>
+            </div>
+        `;
     }
 }
 
