@@ -3,7 +3,6 @@
 use crate::blockchain::Blockchain;
 use crate::trace_optimization::EnhancedTraceResult;
 use crate::transaction::{Transaction, TransactionType, TransactionMetadata, EnvironmentalConditions, QualityData, ComplianceInfo};
-use crate::transaction_blockchain::TransactionBlockchain;
 use crate::wallet::{Participant, ParticipantType, ContactInfo};
 use crate::web::models::{
     BlockchainStatus, BlockInfo, TransactionInfo, AddTripleRequest, 

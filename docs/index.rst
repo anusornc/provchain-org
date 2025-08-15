@@ -1,5 +1,5 @@
-ProvChainOrg Developer Documentation
-====================================
+ProvChainOrg Documentation
+=========================
 
 .. raw:: html
 
@@ -16,7 +16,7 @@ ProvChainOrg Developer Documentation
    </div>
 
 .. note::
-   This documentation is designed to help you build with ProvChainOrg. It covers concepts, explains the technology stack, and provides practical guides for building semantic blockchain applications.
+   This documentation provides comprehensive coverage for all ProvChainOrg users, from business users to developers and researchers. Navigate to the appropriate section based on your role and interests.
 
 Quick Start
 -----------
@@ -39,24 +39,67 @@ Get up and running with ProvChainOrg in minutes:
 .. raw:: html
 
    <div class="quick-links">
-     <a href="foundational/intro-to-provchainorg.html" class="quick-link">
-       <h3>🚀 New to ProvChainOrg?</h3>
-       <p>Start with the basics and learn core concepts</p>
+     <a href="user-guide/index.html" class="quick-link">
+       <h3>👥 For Business Users</h3>
+       <p>User guide for supply chain managers and business users</p>
      </a>
-     <a href="stack/intro-to-stack.html" class="quick-link">
-       <h3>🛠️ Ready to Build?</h3>
-       <p>Explore the development stack and tools</p>
+     <a href="api/index.html" class="quick-link">
+       <h3>💻 For Developers</h3>
+       <p>API reference and technical documentation</p>
      </a>
-     <a href="tutorials/first-supply-chain.html" class="quick-link">
-       <h3>📚 Follow a Tutorial</h3>
-       <p>Build your first supply chain application</p>
+     <a href="research/index.html" class="quick-link">
+       <h3>🔬 For Researchers</h3>
+       <p>Academic papers and technical specifications</p>
      </a>
    </div>
 
-Development Modules
--------------------
+Comprehensive Documentation
+---------------------------
 
-If this is your first time with ProvChainOrg development, we recommend starting at the beginning and working your way through like a book.
+ProvChainOrg provides complete documentation for all stakeholders, from end users to researchers and developers.
+
+User Documentation
+~~~~~~~~~~~~~~~~~~
+
+For end users, business analysts, and system administrators:
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Documentation
+
+   user-guide/index
+   user-guide/introduction
+   user-guide/first-steps
+
+Developer Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+For developers, technical architects, and integration specialists:
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Developer Documentation
+
+   developer/index
+   api/index
+   api/rest-api
+   api/sparql-api
+   api/websocket-api
+   api/authentication
+   api/client-libraries
+
+Research Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+For researchers, academics, and advanced technical users:
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Research Documentation
+
+   research/index
+   research/rdf-canonicalization-algorithm
+   research/technical-specifications
 
 Foundational Topics
 ~~~~~~~~~~~~~~~~~~~

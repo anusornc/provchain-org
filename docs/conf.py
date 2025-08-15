@@ -67,6 +67,12 @@ html_theme_options = {
 # -- Custom CSS -------------------------------------------------------------
 html_css_files = [
     'custom.css',
+    'interactive.css',
+]
+
+# -- Custom JS --------------------------------------------------------------
+html_js_files = [
+    'interactive.js',
 ]
 
 # -- LaTeX output options ---------------------------------------------------
