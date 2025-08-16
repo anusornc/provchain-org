@@ -46,7 +46,7 @@ fn bench_block_creation(c: &mut Criterion) {
                     },
                     |(mut blockchain, data)| {
                         for block_data in data {
-                            blockchain.add_block(black_box(block_data));
+                            let _ = blockchain.add_block(black_box(block_data));
                         }
                         black_box(blockchain)
                     },
@@ -81,7 +81,7 @@ fn bench_rdf_canonicalization(c: &mut Criterion) {
                     },
                     |(mut blockchain, blocks)| {
                         for block_data in blocks {
-                            blockchain.add_block(black_box(block_data));
+                            let _ = blockchain.add_block(black_box(block_data));
                         }
                         black_box(blockchain)
                     },
@@ -102,7 +102,7 @@ fn bench_sparql_queries(c: &mut Criterion) {
     let mut blockchain = Blockchain::new();
     let test_data = generate_supply_chain_rdf_blocks(50);
     for block_data in test_data {
-        blockchain.add_block(block_data);
+        let _ = blockchain.add_block(block_data);
     }
     
     let queries = vec![
@@ -160,14 +160,14 @@ fn bench_blockchain_scaling(c: &mut Criterion) {
                         // Pre-populate blockchain
                         for (i, block_data) in test_data.iter().enumerate() {
                             if i < size - 1 {
-                                blockchain.add_block(block_data.clone());
+                                let _ = blockchain.add_block(block_data.clone());
                             }
                         }
                         
                         (blockchain, test_data.last().unwrap().clone())
                     },
                     |(mut blockchain, final_block)| {
-                        blockchain.add_block(black_box(final_block));
+                        let _ = blockchain.add_block(black_box(final_block));
                         black_box(blockchain)
                     },
                     criterion::BatchSize::SmallInput,
@@ -195,7 +195,7 @@ fn bench_consensus_comparison(c: &mut Criterion) {
             },
             |(mut blockchain, data)| {
                 for block_data in data {
-                    blockchain.add_block(black_box(block_data));
+                    let _ = blockchain.add_block(black_box(block_data));
                 }
                 black_box(blockchain)
             },

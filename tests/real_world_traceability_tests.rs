@@ -164,7 +164,7 @@ mod tests {
         // Add blocks with temporal supply chain data
         let temporal_data = create_temporal_supply_chain_data()?;
         for (i, block_data) in temporal_data.iter().enumerate() {
-            blockchain.add_block(block_data.clone());
+            let _ = blockchain.add_block(block_data.clone());
             rdf_store.load_turtle_data(block_data, &format!("http://provchain.org/block/{}", i))?;
         }
         

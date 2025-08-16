@@ -28,7 +28,7 @@ fn test_blockchain_performance_realistic_load() -> Result<()> {
                    tc:location "Warehouse {}" .
         "#, i, i % 100, i % 50, i, (i % 28) + 1, i % 10);
         
-        blockchain.add_block(realistic_data);
+        let _ = blockchain.add_block(realistic_data);
         
         // Validate every 100 blocks to ensure integrity
         if i % 100 == 0 {
@@ -65,7 +65,7 @@ fn test_sparql_query_performance() -> Result<()> {
                    tc:quality "Grade {}" .
         "#, i, i % 10, i % 20, i % 5, i % 3, i % 4);
         
-        blockchain.add_block(data);
+        let _ = blockchain.add_block(data);
     }
     
     // Test simple query performance
@@ -129,7 +129,7 @@ fn test_rdf_canonicalization_performance() -> Result<()> {
               ] .
     "#;
     
-    blockchain.add_block(complex_rdf.to_string());
+    let _ = blockchain.add_block(complex_rdf.to_string());
     
     // Test canonicalization performance
     let graph_name = oxigraph::model::NamedNode::new("http://provchain.org/block/1").unwrap();
@@ -165,7 +165,7 @@ fn test_concurrent_access_performance() -> Result<()> {
         :batch{:03} tc:product "Product {}" ;
                    tc:origin "Farm {}" .
         "#, i, i, i);
-        blockchain.add_block(data);
+        let _ = blockchain.add_block(data);
     }
     
     let blockchain = Arc::new(blockchain);
@@ -227,7 +227,7 @@ fn test_memory_usage_performance() -> Result<()> {
                    tc:metadata "Additional metadata for batch {}" .
         "#, i, i, i, large_description, i);
         
-        blockchain.add_block(data);
+        let _ = blockchain.add_block(data);
         
         // Validate periodically to ensure memory isn't causing corruption
         if i % 50 == 0 {
@@ -258,7 +258,7 @@ fn test_validation_performance_large_chain() -> Result<()> {
                    tc:timestamp "2024-01-{:02}T10:00:00Z" .
         "#, i, i, i, (i % 28) + 1);
         
-        blockchain.add_block(data);
+        let _ = blockchain.add_block(data);
     }
     
     // Test validation performance
@@ -296,7 +296,7 @@ fn test_performance_degradation() -> Result<()> {
                        tc:origin "Farm {}" .
             "#, block_index, block_index, block_index);
             
-            blockchain.add_block(data);
+            let _ = blockchain.add_block(data);
         }
         
         let add_time = batch_start.elapsed();
@@ -361,7 +361,7 @@ fn test_complex_query_performance() -> Result<()> {
         if i % 3 == 0 { "Premium" } else { "Standard" }
         );
         
-        blockchain.add_block(data);
+        let _ = blockchain.add_block(data);
     }
     
     // Test various complex queries
@@ -447,8 +447,8 @@ fn test_canonicalization_algorithm_performance() -> Result<()> {
               ] .
     "#;
     
-    blockchain.add_block(simple_rdf.to_string());
-    blockchain.add_block(complex_rdf.to_string());
+    let _ = blockchain.add_block(simple_rdf.to_string());
+    let _ = blockchain.add_block(complex_rdf.to_string());
     
     // Test performance of different canonicalization approaches
     let simple_graph = oxigraph::model::NamedNode::new("http://provchain.org/block/1").unwrap();

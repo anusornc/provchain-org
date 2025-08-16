@@ -6,9 +6,7 @@ use crate::trace_optimization::{EnhancedTraceabilitySystem, EnhancedTraceResult}
 use crate::atomic_operations::AtomicOperationContext;
 use oxigraph::model::NamedNode;
 use std::path::Path;
-use anyhow::{Result, bail};
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use anyhow::Result;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Block {

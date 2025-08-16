@@ -78,7 +78,7 @@ fn main() -> anyhow::Result<()> {
         <http://example.org/production_event_001> <http://provchain.org/operator> "John Farmer" .
     "#;
     
-    blockchain.add_block(production_data.to_string());
+    let _ = blockchain.add_block(production_data.to_string());
     
     let processing_data = r#"
         <http://example.org/processing_event_001> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://provchain.org/ProcessingEvent> .
@@ -89,7 +89,7 @@ fn main() -> anyhow::Result<()> {
         <http://example.org/processing_event_001> <http://provchain.org/operator> "Jane Cheesemaker" .
     "#;
     
-    blockchain.add_block(processing_data.to_string());
+    let _ = blockchain.add_block(processing_data.to_string());
     
     println!("   ✓ Added {} blocks to blockchain", blockchain.chain.len());
     

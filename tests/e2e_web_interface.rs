@@ -70,7 +70,7 @@ fn add_sample_test_data(blockchain: &mut Blockchain) {
     ];
     
     for data in sample_data {
-        blockchain.add_block(data.to_string());
+        let _ = blockchain.add_block(data.to_string());
     }
 }
 

@@ -72,7 +72,7 @@ fn benchmark_poa_consensus(block_count: usize) -> ConsensusBenchmarkResults {
         let creation_start = Instant::now();
         
         // Add block to blockchain (this includes validation)
-        blockchain.add_block(block_data.clone());
+        let _ = blockchain.add_block(block_data.clone());
         
         let creation_time = creation_start.elapsed();
         total_creation_time += creation_time;
@@ -319,7 +319,7 @@ fn benchmark_blockchain_performance_scaling() {
         
         // Measure block addition performance
         for block_data in &test_blocks {
-            blockchain.add_block(block_data.clone());
+            let _ = blockchain.add_block(block_data.clone());
         }
         
         let total_time = start_time.elapsed();
@@ -388,7 +388,7 @@ fn benchmark_rdf_canonicalization_in_consensus() {
         
         for (i, block_data) in test_blocks.iter().enumerate() {
             let canon_start = Instant::now();
-            blockchain.add_block(block_data.clone());
+            let _ = blockchain.add_block(block_data.clone());
             let canon_time = canon_start.elapsed();
             canonicalization_times.push(canon_time.as_millis());
             
@@ -497,7 +497,7 @@ fn benchmark_consensus_energy_efficiency() {
     let mut blockchain = Blockchain::new();
     
     for block_data in &test_blocks {
-        blockchain.add_block(block_data.clone());
+        let _ = blockchain.add_block(block_data.clone());
     }
     
     let cpu_time = cpu_start.elapsed();

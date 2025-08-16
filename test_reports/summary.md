@@ -2,16 +2,16 @@
 
 ## Overview
 - **Total Tests**: 4
-- **Passed**: 3 ✅
-- **Failed**: 1 ❌
-- **Success Rate**: 75%
-- **Total Duration**: 43s
+- **Passed**: 2 ✅
+- **Failed**: 2 ❌
+- **Success Rate**: 50%
+- **Total Duration**: 129s
 
 ## Test Results
 
 - ❌ **build**: FAILED
 - ❌ **chromedriver**: FAILED
-- ✅ **comprehensive_user_journey_tests**: PASSED
+- ❌ **comprehensive_user_journey_tests**: FAILED
 - ✅ **e2e_api_workflows**: PASSED
 - ✅ **e2e_user_journeys**: PASSED
 - ❌ **e2e_web_interface**: FAILED

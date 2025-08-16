@@ -32,7 +32,7 @@ fn test_persistent_storage_with_cache() {
     "#;
     
     let graph_name = oxigraph::model::NamedNode::new("http://example.org/test-graph").unwrap();
-    rdf_store.add_rdf_to_graph(test_data, &graph_name);
+    let _ = rdf_store.add_rdf_to_graph(test_data, &graph_name);
     
     // Save to disk
     rdf_store.save_to_disk().unwrap();
@@ -90,8 +90,8 @@ fn test_blockchain_persistence() {
                   ex:quantity 50 .
     "#.to_string();
     
-    blockchain.add_block(test_data1);
-    blockchain.add_block(test_data2);
+    let _ = blockchain.add_block(test_data1);
+    let _ = blockchain.add_block(test_data2);
     
     // Verify blockchain has the expected number of blocks
     assert_eq!(blockchain.chain.len(), 3); // Genesis + 2 added blocks
@@ -139,7 +139,7 @@ fn test_memory_cache_functionality() {
         );
         
         let graph_name = oxigraph::model::NamedNode::new(format!("http://example.org/graph{}", i)).unwrap();
-        rdf_store.add_rdf_to_graph(&test_data, &graph_name);
+        let _ = rdf_store.add_rdf_to_graph(&test_data, &graph_name);
     }
     
     // Verify cache has been populated

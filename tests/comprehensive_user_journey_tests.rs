@@ -69,7 +69,7 @@ async fn setup_test_environment() -> Result<(u16, tokio::task::JoinHandle<()>)> 
     let mut blockchain = Blockchain::new();
     
     // Add complex test data
-    blockchain.add_block(COMPLEX_SUPPLY_CHAIN_DATA.to_string());
+    let _ = blockchain.add_block(COMPLEX_SUPPLY_CHAIN_DATA.to_string());
     
     // Find an available port
     let port = find_available_port().await?;
@@ -265,7 +265,7 @@ async fn test_blockchain_performance() -> Result<()> {
     
     let start = Instant::now();
     for i in 0..1000 {
-        blockchain.add_block(format!("Test data {}", i));
+        let _ = blockchain.add_block(format!("Test data {}", i));
     }
     let duration = start.elapsed();
     

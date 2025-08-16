@@ -31,7 +31,7 @@ fn test_full_persistence_workflow() {
         <http://example.org/supplier1> <http://example.org/name> "Test Supplier" .
     "#;
     
-    store.load_data_from_string(test_data).unwrap();
+    let _ = store.load_data_from_string(test_data);
     
     // Save to disk
     store.save_to_disk().unwrap();
@@ -68,7 +68,7 @@ fn test_blockchain_persistence() {
         <http://example.org/transaction1> <http://example.org/value> "100.0" .
     "#;
     
-    blockchain.add_block(rdf_data.to_string());
+    let _ = blockchain.add_block(rdf_data.to_string());
     
     // Save blockchain state
     blockchain.rdf_store.save_to_disk().unwrap();

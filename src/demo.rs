@@ -20,7 +20,7 @@ pub fn run_demo() {
         ex:FarmerJohn a trace:Farmer ;
             rdfs:label "John's Dairy Farm" .
     "#;
-    bc.add_block(farmer_data.into());
+    let _ = bc.add_block(farmer_data.into());
 
     // Manufacturer RDF using ontology classes
     let manufacturer_data = r#"
@@ -44,7 +44,7 @@ pub fn run_demo() {
         ex:UHTFactory a trace:Manufacturer ;
             rdfs:label "UHT Processing Factory A" .
     "#;
-    bc.add_block(manufacturer_data.into());
+    let _ = bc.add_block(manufacturer_data.into());
 
     // Transport RDF with environmental conditions
     let transport_data = r#"
@@ -68,7 +68,7 @@ pub fn run_demo() {
         ex:LogisticsCorp a trace:LogisticsProvider ;
             rdfs:label "Cold Chain Logistics Corp" .
     "#;
-    bc.add_block(transport_data.into());
+    let _ = bc.add_block(transport_data.into());
 
     println!("Blockchain valid? {}", bc.is_valid());
     println!("\n--- Blockchain Dump ---");

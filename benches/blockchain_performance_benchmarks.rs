@@ -26,7 +26,7 @@ fn bench_blockchain_throughput(c: &mut Criterion) {
                     },
                     |(mut blockchain, transactions)| {
                         for tx in transactions {
-                            blockchain.add_block(black_box(tx));
+                            let _ = blockchain.add_block(black_box(tx));
                         }
                         black_box(blockchain)
                     },
@@ -54,7 +54,7 @@ fn bench_query_performance_scaling(c: &mut Criterion) {
                 let mut blockchain = Blockchain::new();
                 let test_data = generate_supply_chain_data(size);
                 for block_data in test_data {
-                    blockchain.add_block(block_data);
+                    let _ = blockchain.add_block(block_data);
                 }
                 
                 let complex_query = r#"
@@ -102,7 +102,7 @@ fn bench_memory_efficiency(c: &mut Criterion) {
                     },
                     |(mut blockchain, data)| {
                         for block_data in data {
-                            blockchain.add_block(black_box(block_data));
+                            let _ = blockchain.add_block(black_box(block_data));
                         }
                         
                         // Perform some operations to test memory efficiency
@@ -135,7 +135,7 @@ fn bench_validation_performance(c: &mut Criterion) {
                 let mut blockchain = Blockchain::new();
                 let test_data = generate_transaction_batch(size);
                 for block_data in test_data {
-                    blockchain.add_block(block_data);
+                    let _ = blockchain.add_block(block_data);
                 }
                 
                 b.iter(|| {
@@ -160,7 +160,7 @@ fn bench_concurrent_operations(c: &mut Criterion) {
                 // Pre-populate with some data
                 let initial_data = generate_transaction_batch(20);
                 for block_data in initial_data {
-                    blockchain.add_block(block_data);
+                    let _ = blockchain.add_block(block_data);
                 }
                 blockchain
             },
@@ -170,7 +170,7 @@ fn bench_concurrent_operations(c: &mut Criterion) {
                 // Add new blocks
                 let new_blocks = generate_transaction_batch(5);
                 for block_data in new_blocks {
-                    blockchain.add_block(black_box(block_data));
+                    let _ = blockchain.add_block(black_box(block_data));
                 }
                 
                 // Perform queries
@@ -216,7 +216,7 @@ fn bench_rdf_complexity_impact(c: &mut Criterion) {
                     },
                     |(mut blockchain, data)| {
                         for block_data in data {
-                            blockchain.add_block(black_box(block_data));
+                            let _ = blockchain.add_block(black_box(block_data));
                         }
                         black_box(blockchain)
                     },
@@ -248,7 +248,7 @@ fn bench_hash_computation(c: &mut Criterion) {
                         (blockchain, data.clone())
                     },
                     |(mut blockchain, block_data)| {
-                        blockchain.add_block(black_box(block_data));
+                        let _ = blockchain.add_block(black_box(block_data));
                         // Get the hash of the last block
                         let last_block = blockchain.chain.last().unwrap();
                         let _hash = last_block.calculate_hash_with_store(Some(&blockchain.rdf_store));

@@ -264,7 +264,7 @@ pub async fn add_triple(
     eprintln!("Adding triple data: {}", triple_data);
     
     // Add to blockchain (this also adds to the internal RDF store)
-    blockchain.add_block(triple_data);
+    let _ = blockchain.add_block(triple_data);
     
     let block_hash = blockchain.chain.last()
         .map(|b| b.hash.clone())

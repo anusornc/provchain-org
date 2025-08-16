@@ -70,7 +70,7 @@ fn create_supply_chain_blockchain(size: usize) -> Blockchain {
     let mut blockchain = Blockchain::new();
     
     // Add genesis block
-    blockchain.add_block("@prefix ex: <http://example.org/> . ex:genesis ex:type \"Genesis Block\".".to_string());
+    let _ = blockchain.add_block("@prefix ex: <http://example.org/> . ex:genesis ex:type \"Genesis Block\".".to_string());
     
     for i in 0..size {
         let data = format!(
@@ -96,7 +96,7 @@ fn create_supply_chain_blockchain(size: usize) -> Blockchain {
             i, i % 50, i % 20, i, (i % 28) + 1, i, i, i, (i % 28) + 1, i, i
         );
         
-        blockchain.add_block(data);
+        let _ = blockchain.add_block(data);
     }
     
     blockchain

@@ -30,7 +30,7 @@ fn test_backup_restore_functionality() {
         ex:product1 ex:batch "BATCH001" .
     "#.to_string();
     
-    blockchain.add_block(test_data1);
+    let _ = blockchain.add_block(test_data1);
     
     let test_data2 = r#"
         @prefix ex: <http://example.org/> .
@@ -38,7 +38,7 @@ fn test_backup_restore_functionality() {
         ex:product2 ex:batch "BATCH002" .
     "#.to_string();
     
-    blockchain.add_block(test_data2);
+    let _ = blockchain.add_block(test_data2);
     
     // Create a backup
     let backup_info = blockchain.create_backup().unwrap();

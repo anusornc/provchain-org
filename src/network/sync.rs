@@ -243,7 +243,7 @@ impl BlockchainSync {
         // Check if this block extends our chain
         if block.index == blockchain.chain.len() as u64 {
             // This block extends our chain directly
-            blockchain.add_block(block.data.clone());
+            let _ = blockchain.add_block(block.data.clone());
             sync_state.current_height = blockchain.chain.len() as u64;
             
             info!("Added block {} to blockchain (height: {})", block.index, sync_state.current_height);
@@ -467,7 +467,7 @@ mod tests {
             let mut bc = Blockchain::new();
             // Ensure we have at least one block
             if bc.chain.is_empty() {
-                bc.add_block("genesis".to_string());
+                let _ = bc.add_block("genesis".to_string());
             }
             Arc::new(RwLock::new(bc))
         };
@@ -486,7 +486,7 @@ mod tests {
     async fn test_block_validation() {
         let blockchain = {
             let mut bc = Blockchain::new();
-            bc.add_block("test data".to_string());
+            let _ = bc.add_block("test data".to_string());
             Arc::new(RwLock::new(bc))
         };
         let config = NodeConfig::default();

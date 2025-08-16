@@ -107,7 +107,7 @@ fn add_sample_data(blockchain: &mut Blockchain) {
     info!("Adding {} sample triples to blockchain", sample_triples.len());
     
     for triple in sample_triples {
-        blockchain.add_block(triple.to_string());
+        let _ = blockchain.add_block(triple.to_string());
     }
     
     info!("Sample data added successfully");

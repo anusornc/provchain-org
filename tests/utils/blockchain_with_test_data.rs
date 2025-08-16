@@ -9,7 +9,7 @@ fn test_blockchain_with_minimal_test_data() {
     let turtle_data = fs::read_to_string("test_data/minimal_test_data.ttl")
         .expect("Failed to read minimal_test_data.ttl");
     
-    blockchain.add_block(turtle_data);
+    let _ = blockchain.add_block(turtle_data);
     
     // Verify blockchain is valid
     assert!(blockchain.is_valid(), "Blockchain should be valid after adding minimal test data");
@@ -24,7 +24,7 @@ fn test_blockchain_with_complete_supply_chain_data() {
     let turtle_data = fs::read_to_string("test_data/complete_supply_chain_test.ttl")
         .expect("Failed to read complete_supply_chain_test.ttl");
     
-    blockchain.add_block(turtle_data);
+    let _ = blockchain.add_block(turtle_data);
     
     // Verify blockchain is valid
     assert!(blockchain.is_valid(), "Blockchain should be valid after adding supply chain data");
@@ -55,12 +55,12 @@ fn test_blockchain_with_both_test_files() {
     // Add minimal test data first
     let minimal_data = fs::read_to_string("test_data/minimal_test_data.ttl")
         .expect("Failed to read minimal_test_data.ttl");
-    blockchain.add_block(minimal_data);
+    let _ = blockchain.add_block(minimal_data);
     
     // Add complete supply chain data second
     let supply_chain_data = fs::read_to_string("test_data/complete_supply_chain_test.ttl")
         .expect("Failed to read complete_supply_chain_test.ttl");
-    blockchain.add_block(supply_chain_data);
+    let _ = blockchain.add_block(supply_chain_data);
     
     // Verify blockchain is valid
     assert!(blockchain.is_valid(), "Blockchain should be valid with both test data files");

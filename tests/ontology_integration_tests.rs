@@ -42,7 +42,7 @@ fn test_ontology_validation() {
             rdfs:label "Test Manufacturer" .
     "#;
     
-    bc.add_block(valid_data.into());
+    let _ = bc.add_block(valid_data.into());
     
     // Validate the last block's data
     let last_block_index = bc.chain.len() - 1;
@@ -115,7 +115,7 @@ fn test_environmental_conditions_integration() {
             trace:hasConditionTimestamp "2025-08-08T14:00:00Z"^^xsd:dateTime .
     "#;
     
-    bc.add_block(env_data.into());
+    let _ = bc.add_block(env_data.into());
     
     // Query for environmental conditions across all graphs
     let env_query = r#"
@@ -187,7 +187,7 @@ fn test_supply_chain_traceability() {
         ex:dairyFarm a trace:Farmer ;
             rdfs:label "Green Valley Dairy Farm" .
     "#;
-    bc.add_block(farmer_data.into());
+    let _ = bc.add_block(farmer_data.into());
     
     let processing_data = r#"
         @prefix ex: <http://example.org/> .
@@ -210,7 +210,7 @@ fn test_supply_chain_traceability() {
         ex:processor a trace:Manufacturer ;
             rdfs:label "UHT Processing Co." .
     "#;
-    bc.add_block(processing_data.into());
+    let _ = bc.add_block(processing_data.into());
     
     // Query for complete traceability chain across all graphs
     let trace_query = r#"

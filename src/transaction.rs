@@ -173,7 +173,7 @@ impl Transaction {
     /// Calculate transaction hash for signing using RDF canonicalization
     pub fn calculate_hash(&self) -> String {
         // Create a temporary RDF store to canonicalize the RDF data
-        let mut temp_store = crate::rdf_store::RDFStore::new();
+        let temp_store = crate::rdf_store::RDFStore::new();
         
         // Parse the RDF data into the temporary store
         if !self.rdf_data.is_empty() {

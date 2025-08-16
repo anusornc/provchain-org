@@ -31,7 +31,7 @@ fn bench_canonicalization_complexity(c: &mut Criterion) {
                     },
                     |(mut blockchain, graphs)| {
                         for graph_data in graphs {
-                            blockchain.add_block(black_box(graph_data));
+                            let _ = blockchain.add_block(black_box(graph_data));
                         }
                         black_box(blockchain)
                     },
@@ -67,7 +67,7 @@ fn bench_blank_node_patterns(c: &mut Criterion) {
                     },
                     |(mut blockchain, graphs)| {
                         for graph_data in graphs {
-                            blockchain.add_block(black_box(graph_data));
+                            let _ = blockchain.add_block(black_box(graph_data));
                         }
                         black_box(blockchain)
                     },
@@ -99,7 +99,7 @@ fn bench_canonicalization_scaling(c: &mut Criterion) {
                         (blockchain, test_graph.clone())
                     },
                     |(mut blockchain, graph_data)| {
-                        blockchain.add_block(black_box(graph_data));
+                        let _ = blockchain.add_block(black_box(graph_data));
                         black_box(blockchain)
                     },
                     criterion::BatchSize::SmallInput,
@@ -133,7 +133,7 @@ fn bench_supply_chain_canonicalization(c: &mut Criterion) {
                     },
                     |(mut blockchain, chains)| {
                         for chain_data in chains {
-                            blockchain.add_block(black_box(chain_data));
+                            let _ = blockchain.add_block(black_box(chain_data));
                         }
                         black_box(blockchain)
                     },

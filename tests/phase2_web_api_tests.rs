@@ -301,7 +301,7 @@ fn test_transaction_info_model() {
 #[test]
 fn test_models_with_blockchain_integration() {
     let mut blockchain = Blockchain::new();
-    blockchain.add_block("test triple data".to_string());
+    let _ = blockchain.add_block("test triple data".to_string());
     
     let status = BlockchainStatus {
         height: blockchain.chain.len(),
@@ -418,8 +418,8 @@ fn test_blockchain_web_integration() {
     let mut blockchain = Blockchain::new();
     
     // Add some test data
-    blockchain.add_block("test RDF data".to_string());
-    blockchain.add_block("more test data".to_string());
+    let _ = blockchain.add_block("test RDF data".to_string());
+    let _ = blockchain.add_block("more test data".to_string());
     
     // Test that blockchain data can be converted to web models
     let block_info = BlockInfo {

@@ -26,7 +26,7 @@ fn bench_block_creation(c: &mut Criterion) {
                     },
                     |(mut blockchain, data)| {
                         for block_data in data {
-                            blockchain.add_block(black_box(block_data));
+                            let _ = blockchain.add_block(black_box(block_data));
                         }
                         black_box(blockchain)
                     },
@@ -47,7 +47,7 @@ fn bench_sparql_queries(c: &mut Criterion) {
     let mut blockchain = Blockchain::new();
     let test_data = generate_supply_chain_data(20);
     for block_data in test_data {
-        blockchain.add_block(block_data);
+        let _ = blockchain.add_block(block_data);
     }
     
     let queries = vec![
@@ -90,7 +90,7 @@ fn bench_blockchain_scaling(c: &mut Criterion) {
                     },
                     |(mut blockchain, data)| {
                         for block_data in data {
-                            blockchain.add_block(black_box(block_data));
+                            let _ = blockchain.add_block(black_box(block_data));
                         }
                         black_box(blockchain)
                     },
@@ -117,7 +117,7 @@ fn bench_validation_performance(c: &mut Criterion) {
                 let mut blockchain = Blockchain::new();
                 let test_data = generate_test_rdf_data(size);
                 for block_data in test_data {
-                    blockchain.add_block(block_data);
+                    let _ = blockchain.add_block(block_data);
                 }
                 
                 b.iter(|| {

@@ -49,7 +49,7 @@ fn test_blockchain_with_rdf_canonicalization() {
     
     // Add a block with simple RDF data
     let simple_rdf_data = r#"@prefix ex: <http://example.org/> . ex:test ex:value "simple" ."#;
-    bc.add_block(simple_rdf_data.to_string());
+    let _ = bc.add_block(simple_rdf_data.to_string());
     
     // Verify we have 2 blocks (genesis + our block)
     assert_eq!(bc.chain.len(), 2, "Should have 2 blocks");

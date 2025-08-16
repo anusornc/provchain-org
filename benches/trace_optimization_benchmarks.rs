@@ -166,7 +166,7 @@ fn create_supply_chain_blockchain(size: usize) -> Blockchain {
             i, i % 50, i % 20, i
         );
         
-        blockchain.add_block(data);
+        let _ = blockchain.add_block(data);
     }
     
     blockchain
@@ -229,7 +229,7 @@ fn create_complex_supply_chain(size: usize) -> Blockchain {
             ),
         };
         
-        blockchain.add_block(data);
+        let _ = blockchain.add_block(data);
     }
     
     blockchain
