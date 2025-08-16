@@ -5,7 +5,7 @@ use oxigraph::store::Store;
 use std::io::Cursor;
 use sha2::{Sha256, Digest};
 use std::collections::{HashSet, HashMap};
-use std::time::Instant;
+use std::time::{Instant, SystemTime};
 use std::path::{Path, PathBuf};
 use anyhow::{Result, Context};
 use tracing::{info, warn, error, debug};
@@ -90,6 +90,8 @@ pub struct StorageConfig {
     pub max_backup_files: usize,
     pub enable_compression: bool,
     pub enable_encryption: bool,
+    pub cache_size: usize,
+    pub warm_cache_on_startup: bool,
 }
 
 impl Default for StorageConfig {
@@ -101,6 +103,8 @@ impl Default for StorageConfig {
             max_backup_files: 7,
             enable_compression: true,
             enable_encryption: false,
+            cache_size: 1000, // Default cache size for 1000 graphs
+            warm_cache_on_startup: false,
         }
     }
 }
@@ -115,10 +119,72 @@ pub struct BackupInfo {
     pub encrypted: bool,
 }
 
+/// Memory cache entry with access time for LRU eviction
+#[derive(Debug, Clone)]
+struct CacheEntry {
+    quads: Vec<Quad>,
+    last_access: SystemTime,
+}
+
+/// Memory cache for frequently accessed RDF data
+#[derive(Debug)]
+pub struct RDFMemoryCache {
+    cache: HashMap<String, CacheEntry>,
+    max_size: usize,
+}
+
+impl RDFMemoryCache {
+    pub fn new(max_size: usize) -> Self {
+        Self {
+            cache: HashMap::new(),
+            max_size,
+        }
+    }
+    
+    pub fn get(&mut self, graph_name: &str) -> Option<&Vec<Quad>> {
+        if let Some(entry) = self.cache.get_mut(graph_name) {
+            entry.last_access = SystemTime::now();
+            Some(&entry.quads)
+        } else {
+            None
+        }
+    }
+    
+    pub fn insert(&mut self, graph_name: String, quads: Vec<Quad>) {
+        // If cache is at capacity, evict LRU entry
+        if self.cache.len() >= self.max_size {
+            self.evict_lru();
+        }
+        
+        let entry = CacheEntry {
+            quads,
+            last_access: SystemTime::now(),
+        };
+        self.cache.insert(graph_name, entry);
+    }
+    
+    fn evict_lru(&mut self) {
+        if let Some(lru_key) = self.cache.iter()
+            .min_by_key(|(_, entry)| entry.last_access)
+            .map(|(key, _)| key.clone()) {
+            self.cache.remove(&lru_key);
+        }
+    }
+    
+    pub fn size(&self) -> usize {
+        self.cache.len()
+    }
+    
+    pub fn clear(&mut self) {
+        self.cache.clear();
+    }
+}
+
 pub struct RDFStore {
     pub store: Store,
     pub config: StorageConfig,
     pub is_persistent: bool,
+    pub memory_cache: Option<RDFMemoryCache>,
 }
 
 impl std::fmt::Debug for RDFStore {
@@ -153,6 +219,11 @@ impl Clone for RDFStore {
             store: new_store,
             config: self.config.clone(),
             is_persistent: self.is_persistent,
+            memory_cache: if self.config.cache_size > 0 {
+                Some(RDFMemoryCache::new(self.config.cache_size))
+            } else {
+                None
+            },
         }
     }
 }
@@ -161,10 +232,16 @@ impl RDFStore {
     /// Create a new in-memory RDF store (for testing and development)
     pub fn new() -> Self {
         info!("Creating new in-memory RDF store");
+        let config = StorageConfig::default();
         RDFStore {
             store: Store::new().unwrap(),
-            config: StorageConfig::default(),
+            config: config.clone(),
             is_persistent: false,
+            memory_cache: if config.cache_size > 0 {
+                Some(RDFMemoryCache::new(config.cache_size))
+            } else {
+                None
+            },
         }
     }
 
@@ -188,8 +265,13 @@ impl RDFStore {
         
         let mut rdf_store = RDFStore {
             store,
-            config,
+            config: config.clone(),
             is_persistent: true,
+            memory_cache: if config.cache_size > 0 {
+                Some(RDFMemoryCache::new(config.cache_size))
+            } else {
+                None
+            },
         };
         
         // Try to load existing data
@@ -217,8 +299,13 @@ impl RDFStore {
         
         let mut rdf_store = RDFStore {
             store,
-            config,
+            config: config.clone(),
             is_persistent: true,
+            memory_cache: if config.cache_size > 0 {
+                Some(RDFMemoryCache::new(config.cache_size))
+            } else {
+                None
+            },
         };
         
         // Try to load existing data
@@ -236,7 +323,7 @@ impl RDFStore {
             return Ok(());
         }
         
-        let data_file = self.config.data_dir.join("store.ttl");
+        let data_file = self.config.data_dir.join("store.nq");
         if !data_file.exists() {
             return Ok(());
         }
@@ -246,23 +333,96 @@ impl RDFStore {
         let data = std::fs::read_to_string(&data_file)
             .with_context(|| format!("Failed to read data file: {}", data_file.display()))?;
         
+        self.load_data_from_string(&data)?;
+        
+        let quad_count = self.store.len().unwrap_or(0);
+        info!("Successfully loaded {} quads from disk", quad_count);
+        
+        // If warm cache is enabled, load data into memory cache
+        if self.config.warm_cache_on_startup {
+            self.warm_cache()?;
+        }
+        
+        Ok(())
+    }
+
+    /// Load RDF data from a string
+    pub fn load_data_from_string(&mut self, data: &str) -> Result<()> {
         use oxigraph::io::RdfFormat;
         use std::io::Cursor;
         
         let reader = Cursor::new(data.as_bytes());
-        self.store.load_from_reader(RdfFormat::Turtle, reader)
-            .with_context(|| "Failed to parse RDF data from disk")?;
+        self.store.load_from_reader(RdfFormat::NQuads, reader)
+            .with_context(|| "Failed to parse RDF data from string")?;
         
-        let quad_count = self.store.len().unwrap_or(0);
-        info!("Successfully loaded {} quads from disk", quad_count);
         Ok(())
     }
-
+    
+    /// Warm up the memory cache with frequently accessed data
+    fn warm_cache(&mut self) -> Result<()> {
+        // First, get all named graphs without holding a mutable reference to cache
+        let graph_names: Vec<String> = {
+            let query = r#"
+                SELECT DISTINCT ?g WHERE {
+                    GRAPH ?g { ?s ?p ?o }
+                }
+            "#;
+            
+            if let QueryResults::Solutions(solutions) = self.query(query) {
+                let mut names = Vec::new();
+                for solution in solutions {
+                    if let Ok(sol) = solution {
+                        if let Some(graph_term) = sol.get("g") {
+                            if let Term::NamedNode(graph_node) = graph_term {
+                                names.push(graph_node.as_str().to_string());
+                            }
+                        }
+                    }
+                }
+                names
+            } else {
+                Vec::new()
+            }
+        };
+        
+        // Now populate the cache by temporarily taking ownership of it
+        if let Some(mut cache) = self.memory_cache.take() {
+            info!("Warming up memory cache");
+            
+            let mut graph_count = 0;
+            for graph_name in graph_names {
+                // Create a temporary store to avoid borrowing conflicts
+                let graph_node = NamedNode::new(&graph_name)
+                    .with_context(|| format!("Invalid graph name: {}", graph_name))?;
+                
+                let mut quads = Vec::new();
+                for quad_result in self.store.quads_for_pattern(None, None, None, Some((&graph_node).into())) {
+                    if let Ok(quad) = quad_result {
+                        quads.push(quad);
+                    }
+                }
+                
+                cache.insert(graph_name, quads);
+                graph_count += 1;
+            }
+            
+            info!("Warmed cache with {} graphs", graph_count);
+            
+            // Put the cache back
+            self.memory_cache = Some(cache);
+        }
+        Ok(())
+    }
+    
     /// Save RDF data to disk using N-Quads format (supports datasets with named graphs)
     pub fn save_to_disk(&self) -> Result<()> {
         if !self.is_persistent {
             return Ok(());
         }
+        
+        // Ensure the data directory exists
+        std::fs::create_dir_all(&self.config.data_dir)
+            .with_context(|| format!("Failed to create data directory: {}", self.config.data_dir.display()))?;
         
         // Use N-Quads format which properly supports datasets with named graphs
         let data_file = self.config.data_dir.join("store.nq");
@@ -544,8 +704,13 @@ impl RDFStore {
         
         let mut rdf_store = RDFStore {
             store,
-            config,
+            config: config.clone(),
             is_persistent: true,
+            memory_cache: if config.cache_size > 0 {
+                Some(RDFMemoryCache::new(config.cache_size))
+            } else {
+                None
+            },
         };
         
         // Load the restored data
@@ -722,6 +887,7 @@ impl RDFStore {
         match temp_store.load_from_reader(RdfFormat::Turtle, reader) {
             Ok(_) => {
                 // Successfully parsed as RDF, now copy all triples to the target graph
+                let mut quads_to_insert = Vec::new();
                 for quad in temp_store.iter() {
                     if let Ok(original_quad) = quad {
                         // Create a new quad with the specified graph name
@@ -731,8 +897,25 @@ impl RDFStore {
                             original_quad.object.clone(),
                             graph_name.clone()
                         );
-                        self.store.insert(&new_quad).unwrap();
+                        quads_to_insert.push(new_quad);
                     }
+                }
+                
+                // Insert all quads into the main store
+                for quad in &quads_to_insert {
+                    self.store.insert(quad).unwrap();
+                }
+                
+                // Update cache if it exists
+                if let Some(ref mut cache) = self.memory_cache {
+                    let mut cached_quads = quads_to_insert.clone();
+                    // Add existing quads from cache if any
+                    // We need to get the existing quads without holding a mutable reference
+                    let existing_quads = cache.get(graph_name.as_str()).cloned();
+                    if let Some(quads) = existing_quads {
+                        cached_quads.extend(quads.iter().cloned());
+                    }
+                    cache.insert(graph_name.as_str().to_string(), cached_quads);
                 }
             }
             Err(_) => {
@@ -742,6 +925,18 @@ impl RDFStore {
                 let object = Literal::new_simple_literal(rdf_data);
                 let quad = Quad::new(subject, predicate, object, graph_name.clone());
                 self.store.insert(&quad).unwrap();
+                
+                // Update cache if it exists
+                if let Some(ref mut cache) = self.memory_cache {
+                    let mut cached_quads = vec![quad.clone()];
+                    // Add existing quads from cache if any
+                    // We need to get the existing quads without holding a mutable reference
+                    let existing_quads = cache.get(graph_name.as_str()).cloned();
+                    if let Some(quads) = existing_quads {
+                        cached_quads.extend(quads.iter().cloned());
+                    }
+                    cache.insert(graph_name.as_str().to_string(), cached_quads);
+                }
             }
         }
     }

@@ -1,0 +1,41 @@
+# ProvChain Persistence Configuration
+# This file configures the persistent storage system for Oxigraph data
+
+[storage]
+# Base directory for all persistent storage
+data_dir = "data/persistent_store"
+
+# Enable automatic backups
+enable_backup = true
+
+# Backup interval in hours
+backup_interval_hours = 24
+
+# Maximum number of backup files to keep
+max_backup_files = 5
+
+# Enable compression for backups (saves space but slower)
+enable_compression = false
+
+# Enable encryption for sensitive data
+enable_encryption = false
+
+[cache]
+# Cache size in number of entries
+cache_size = 1000
+
+# Pre-load cache on startup
+warm_cache_on_startup = true
+
+# Maximum memory usage in bytes (0 = unlimited)
+max_memory_usage = 0
+
+[performance]
+# Enable query optimization
+enable_query_optimization = true
+
+# Enable indexing for faster queries
+enable_indexing = true
+
+# Log level for storage operations
+log_level = "info"

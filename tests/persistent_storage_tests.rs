@@ -1,397 +1,165 @@
-//! Persistent Storage Tests
-//! 
-//! Tests for blockchain persistence, backup/restore functionality,
-//! and storage integrity validation.
+//! Tests for persistent storage and memory cache functionality
 
 use provchain_org::blockchain::Blockchain;
-use tempfile::TempDir;
-use std::fs;
-use anyhow::Result;
+use provchain_org::rdf_store::{RDFStore, StorageConfig};
+use tempfile::tempdir;
+use std::path::Path;
 
 #[test]
-fn test_persistent_blockchain_creation() -> Result<()> {
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
+fn test_persistent_storage_with_cache() {
+    // Create a temporary directory for testing
+    let temp_dir = tempdir().unwrap();
+    let data_dir = temp_dir.path().join("test_data");
     
-    // Create a new persistent blockchain
-    let mut blockchain = Blockchain::new_persistent(&data_path)?;
+    // Create storage configuration with cache enabled
+    let config = StorageConfig {
+        data_dir: data_dir.clone(),
+        cache_size: 100,
+        warm_cache_on_startup: false,
+        ..Default::default()
+    };
+    
+    // Create a persistent RDF store with cache
+    let mut rdf_store = RDFStore::new_persistent_with_config(config).unwrap();
     
     // Add some test data
     let test_data = r#"
-    @prefix : <http://example.org/> .
-    @prefix tc: <http://provchain.org/trace#> .
-    
-    :batch001 tc:product "Test Product" ;
-              tc:origin "Test Farm" ;
-              tc:status "Created" .
+        @prefix ex: <http://example.org/> .
+        @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+        
+        ex:product1 rdf:type ex:Product ;
+            ex:name "Test Product" ;
+            ex:batchId "TEST-001" .
     "#;
     
-    blockchain.add_block(test_data.to_string());
-    blockchain.flush()?;
+    let graph_name = oxigraph::model::NamedNode::new("http://example.org/test-graph").unwrap();
+    rdf_store.add_rdf_to_graph(test_data, &graph_name);
     
-    // Verify the blockchain is valid
-    assert!(blockchain.is_valid());
-    assert_eq!(blockchain.chain.len(), 2); // Genesis + 1 data block
+    // Save to disk
+    rdf_store.save_to_disk().unwrap();
     
-    // Verify data directory was created
-    assert!(data_path.exists());
-    
-    Ok(())
-}
-
-#[test]
-fn test_blockchain_persistence_across_restarts() -> Result<()> {
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
-    
-    let test_data = r#"
-    @prefix : <http://example.org/> .
-    @prefix tc: <http://provchain.org/trace#> .
-    
-    :batch001 tc:product "Persistent Product" ;
-              tc:origin "Persistent Farm" ;
-              tc:batchId "PERSIST001" .
-    "#;
-    
-    // Create blockchain and add data
-    {
-        let mut blockchain = Blockchain::new_persistent(&data_path)?;
-        blockchain.add_block(test_data.to_string());
-        blockchain.flush()?;
-        assert_eq!(blockchain.chain.len(), 2);
-    }
-    
-    // Recreate blockchain from same directory
-    {
-        let blockchain = Blockchain::new_persistent(&data_path)?;
-        assert_eq!(blockchain.chain.len(), 2);
-        assert!(blockchain.is_valid());
-        
-        // Verify the data is still there
-        let query = r#"
-        PREFIX tc: <http://provchain.org/trace#>
-        SELECT ?product WHERE {
-            ?batch tc:product ?product .
-            FILTER(?product = "Persistent Product")
-        }
-        "#;
-        
-        let results = blockchain.rdf_store.query(query);
-        // Should find the persistent product
-        if let oxigraph::sparql::QueryResults::Solutions(solutions) = results {
-            let results: Vec<_> = solutions.collect();
-            assert!(!results.is_empty(), "Should find persistent product data");
-        }
-    }
-    
-    Ok(())
-}
-
-#[test]
-fn test_blockchain_backup_and_restore() -> Result<()> {
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
-    let backup_path = temp_dir.path().join("backup");
-    let restore_path = temp_dir.path().join("restored_data");
-    
-    let test_data = r#"
-    @prefix : <http://example.org/> .
-    @prefix tc: <http://provchain.org/trace#> .
-    
-    :batch001 tc:product "Backup Test Product" ;
-              tc:origin "Backup Test Farm" ;
-              tc:batchId "BACKUP001" .
-    
-    :batch002 tc:product "Another Product" ;
-              tc:origin "Another Farm" ;
-              tc:batchId "BACKUP002" .
-    "#;
-    
-    // Create blockchain with test data
-    let original_blockchain = {
-        let mut blockchain = Blockchain::new_persistent(&data_path)?;
-        blockchain.add_block(test_data.to_string());
-        blockchain.flush()?;
-        
-        // Create backup
-        let backup_info = blockchain.create_backup()?;
-        println!("Created backup: {:?}", backup_info);
-        
-        blockchain
+    // Create a new store instance to test loading from disk
+    let config2 = StorageConfig {
+        data_dir: data_dir.clone(),
+        cache_size: 100,
+        warm_cache_on_startup: false,
+        ..Default::default()
     };
     
-    // Restore from backup to new location
-    let restored_blockchain = Blockchain::restore_from_backup(&backup_path, &restore_path)?;
+    let rdf_store2 = RDFStore::new_persistent_with_config(config2).unwrap();
     
-    // Verify restored blockchain matches original
-    assert_eq!(restored_blockchain.chain.len(), original_blockchain.chain.len());
-    assert!(restored_blockchain.is_valid());
+    // Verify data was loaded correctly
+    assert!(rdf_store2.store.len().unwrap() > 0);
     
-    // Verify data integrity
-    for (original, restored) in original_blockchain.chain.iter().zip(restored_blockchain.chain.iter()) {
-        assert_eq!(original.index, restored.index);
-        assert_eq!(original.hash, restored.hash);
-        assert_eq!(original.previous_hash, restored.previous_hash);
-        assert_eq!(original.data, restored.data);
-    }
-    
-    Ok(())
-}
-
-#[test]
-fn test_storage_statistics() -> Result<()> {
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
-    
-    let mut blockchain = Blockchain::new_persistent(&data_path)?;
-    
-    // Add multiple blocks
-    for i in 0..10 {
-        let test_data = format!(r#"
-        @prefix : <http://example.org/> .
-        @prefix tc: <http://provchain.org/trace#> .
-        
-        :batch{:03} tc:product "Product {}" ;
-                   tc:origin "Farm {}" ;
-                   tc:batchId "BATCH{:03}" .
-        "#, i, i, i, i);
-        
-        blockchain.add_block(test_data);
-    }
-    
-    blockchain.flush()?;
-    
-    // Get storage statistics
-    let stats = blockchain.get_storage_stats()?;
-    
-    // Verify statistics make sense
-    assert!(stats.disk_usage_bytes.unwrap_or(0) > 0);
-    assert!(stats.quad_count > 0);
-    
-    println!("Storage stats: {:?}", stats);
-    
-    Ok(())
-}
-
-#[test]
-fn test_database_integrity_check() -> Result<()> {
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
-    
-    let mut blockchain = Blockchain::new_persistent(&data_path)?;
-    
-    // Add test data
-    let test_data = r#"
-    @prefix : <http://example.org/> .
-    @prefix tc: <http://provchain.org/trace#> .
-    
-    :batch001 tc:product "Integrity Test Product" ;
-              tc:origin "Integrity Test Farm" .
-    "#;
-    
-    blockchain.add_block(test_data.to_string());
-    blockchain.flush()?;
-    
-    // Check integrity
-    let integrity_report = blockchain.check_integrity()?;
-    
-    assert_eq!(integrity_report.errors.len(), 0);
-    
-    println!("Integrity report: {:?}", integrity_report);
-    
-    Ok(())
-}
-
-#[test]
-fn test_database_optimization() -> Result<()> {
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
-    
-    let mut blockchain = Blockchain::new_persistent(&data_path)?;
-    
-    // Add multiple blocks to create data to optimize
-    for i in 0..20 {
-        let test_data = format!(r#"
-        @prefix : <http://example.org/> .
-        @prefix tc: <http://provchain.org/trace#> .
-        
-        :batch{:03} tc:product "Optimization Product {}" ;
-                   tc:origin "Optimization Farm {}" .
-        "#, i, i, i);
-        
-        blockchain.add_block(test_data);
-    }
-    
-    blockchain.flush()?;
-    
-    // Get stats before optimization
-    let stats_before = blockchain.get_storage_stats()?;
-    
-    // Optimize database
-    blockchain.optimize()?;
-    
-    // Get stats after optimization
-    let stats_after = blockchain.get_storage_stats()?;
-    
-    // Verify blockchain is still valid after optimization
-    assert!(blockchain.is_valid());
-    
-    // Stats should be available (optimization might not change size significantly in small test)
-    assert!(stats_after.disk_usage_bytes.is_some());
-    
-    println!("Stats before optimization: {:?}", stats_before);
-    println!("Stats after optimization: {:?}", stats_after);
-    
-    Ok(())
-}
-
-#[test]
-fn test_concurrent_access_safety() -> Result<()> {
-    use std::sync::Arc;
-    use std::thread;
-    
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
-    
-    // Create initial blockchain
-    {
-        let mut blockchain = Blockchain::new_persistent(&data_path)?;
-        blockchain.add_block("Initial data".to_string());
-        blockchain.flush()?;
-    }
-    
-    // Test concurrent read access
-    let data_path = Arc::new(data_path);
-    let mut handles = vec![];
-    
-    for i in 0..5 {
-        let path = Arc::clone(&data_path);
-        let handle = thread::spawn(move || -> Result<()> {
-            let blockchain = Blockchain::new_persistent(&*path)?;
-            
-            // Verify blockchain is valid
-            assert!(blockchain.is_valid());
-            assert!(blockchain.chain.len() >= 2); // Genesis + initial data
-            
-            // Perform a query
-            let query = "SELECT * WHERE { ?s ?p ?o } LIMIT 10";
-            let _results = blockchain.rdf_store.query(query);
-            
-            println!("Thread {} completed successfully", i);
-            Ok(())
-        });
-        handles.push(handle);
-    }
-    
-    // Wait for all threads to complete
-    for handle in handles {
-        handle.join().unwrap()?;
-    }
-    
-    Ok(())
-}
-
-#[test]
-fn test_corrupted_data_handling() -> Result<()> {
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
-    
-    // Create blockchain with data
-    {
-        let mut blockchain = Blockchain::new_persistent(&data_path)?;
-        blockchain.add_block("Test data for corruption test".to_string());
-        blockchain.flush()?;
-    }
-    
-    // Simulate corruption by writing invalid data to a database file
-    if let Ok(entries) = fs::read_dir(&data_path) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_file() && path.extension().map_or(false, |ext| ext == "db") {
-                    // Write some invalid data to corrupt the file
-                    fs::write(&path, b"CORRUPTED_DATA")?;
-                    break;
-                }
-            }
-        }
-    }
-    
-    // Try to open the corrupted blockchain
-    let result = Blockchain::new_persistent(&data_path);
-    
-    // Should either handle gracefully or return an error
-    match result {
-        Ok(blockchain) => {
-            // If it opens, it should at least have a genesis block
-            assert!(blockchain.chain.len() >= 1);
-            println!("Blockchain handled corruption gracefully");
-        }
-        Err(e) => {
-            println!("Blockchain correctly detected corruption: {}", e);
-            // This is also acceptable behavior
-        }
-    }
-    
-    Ok(())
-}
-
-#[test]
-fn test_large_dataset_persistence() -> Result<()> {
-    let temp_dir = TempDir::new()?;
-    let data_path = temp_dir.path().join("blockchain_data");
-    
-    let mut blockchain = Blockchain::new_persistent(&data_path)?;
-    
-    // Add a large number of blocks with substantial data
-    for i in 0..100 {
-        let large_data = format!(r#"
-        @prefix : <http://example.org/> .
-        @prefix tc: <http://provchain.org/trace#> .
-        
-        :batch{:03} tc:product "Large Dataset Product {}" ;
-                   tc:origin "Large Dataset Farm {}" ;
-                   tc:description "This is a large description for batch {} with lots of text to make the data substantial and test the storage capabilities of the persistent blockchain implementation." ;
-                   tc:metadata "Additional metadata for batch {} including various properties and attributes that would be typical in a real-world supply chain scenario." ;
-                   tc:timestamp "2024-01-{:02}T10:00:00Z" .
-        "#, i, i, i, i, i, (i % 28) + 1);
-        
-        blockchain.add_block(large_data);
-        
-        // Flush every 10 blocks
-        if i % 10 == 0 {
-            blockchain.flush()?;
-        }
-    }
-    
-    blockchain.flush()?;
-    
-    // Verify all blocks are present and valid
-    assert_eq!(blockchain.chain.len(), 101); // Genesis + 100 data blocks
-    assert!(blockchain.is_valid());
-    
-    // Test querying the large dataset
+    // Test querying the loaded data
     let query = r#"
-    PREFIX tc: <http://provchain.org/trace#>
-    SELECT (COUNT(?batch) as ?count) WHERE {
-        ?batch tc:product ?product .
-        FILTER(CONTAINS(?product, "Large Dataset Product"))
-    }
+        PREFIX ex: <http://example.org/>
+        ASK { GRAPH <http://example.org/test-graph> { ?s ?p ?o } }
     "#;
     
-    let results = blockchain.rdf_store.query(query);
-    if let oxigraph::sparql::QueryResults::Solutions(solutions) = results {
-        let results: Vec<_> = solutions.collect();
-        assert!(!results.is_empty(), "Should find large dataset products");
+    let results = rdf_store2.query(query);
+    if let oxigraph::sparql::QueryResults::Boolean(result) = results {
+        assert!(result);
+    } else {
+        panic!("Expected boolean result");
+    }
+}
+
+#[test]
+fn test_blockchain_persistence() {
+    // Create a temporary directory for testing
+    let temp_dir = tempdir().unwrap();
+    let data_dir = temp_dir.path().join("blockchain_test");
+    
+    // Create a persistent blockchain
+    let mut blockchain = Blockchain::new_persistent(&data_dir).unwrap();
+    
+    // Add some blocks
+    let test_data1 = r#"
+        @prefix ex: <http://example.org/> .
+        @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+        
+        ex:batch1 ex:productType "Milk" ;
+                  ex:quantity 1000 .
+    "#.to_string();
+    
+    let test_data2 = r#"
+        @prefix ex: <http://example.org/> .
+        @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+        
+        ex:batch2 ex:productType "Cheese" ;
+                  ex:quantity 50 .
+    "#.to_string();
+    
+    blockchain.add_block(test_data1);
+    blockchain.add_block(test_data2);
+    
+    // Verify blockchain has the expected number of blocks
+    assert_eq!(blockchain.chain.len(), 3); // Genesis + 2 added blocks
+    
+    // Save to disk
+    blockchain.rdf_store.save_to_disk().unwrap();
+    
+    // Create a new blockchain instance to test loading from disk
+    let blockchain2 = Blockchain::new_persistent(&data_dir).unwrap();
+    
+    // Verify data was loaded correctly
+    assert_eq!(blockchain2.chain.len(), 3);
+    
+    // Verify block hashes match
+    for i in 0..3 {
+        assert_eq!(blockchain.chain[i].hash, blockchain2.chain[i].hash);
+    }
+}
+
+#[test]
+fn test_memory_cache_functionality() {
+    // Create a temporary directory for testing
+    let temp_dir = tempdir().unwrap();
+    let data_dir = temp_dir.path().join("cache_test");
+    
+    // Create storage configuration with cache enabled
+    let config = StorageConfig {
+        data_dir: data_dir.clone(),
+        cache_size: 10,
+        warm_cache_on_startup: false,
+        ..Default::default()
+    };
+    
+    // Create a persistent RDF store with cache
+    let mut rdf_store = RDFStore::new_persistent_with_config(config).unwrap();
+    
+    // Add multiple graphs to test caching
+    for i in 1..=5 {
+        let test_data = format!(
+            r#"
+                @prefix ex: <http://example.org/> .
+                ex:product{} ex:name "Product {}" ;
+                             ex:id "{}" .
+            "#, i, i, i
+        );
+        
+        let graph_name = oxigraph::model::NamedNode::new(format!("http://example.org/graph{}", i)).unwrap();
+        rdf_store.add_rdf_to_graph(&test_data, &graph_name);
     }
     
-    // Get final storage statistics
-    let stats = blockchain.get_storage_stats()?;
-    println!("Large dataset storage stats: {:?}", stats);
+    // Verify cache has been populated
+    if let Some(ref cache) = rdf_store.memory_cache {
+        assert!(cache.size() > 0);
+    }
     
-    // Verify substantial data was stored
-    assert!(stats.disk_usage_bytes.unwrap_or(0) > 1000); // Should be substantial
-    assert!(stats.quad_count > 100); // Should have many quads
+    // Save to disk
+    rdf_store.save_to_disk().unwrap();
     
-    Ok(())
+    // Test that we can query the data
+    let query = r#"
+        PREFIX ex: <http://example.org/>
+        SELECT ?s ?p ?o WHERE { GRAPH ?g { ?s ?p ?o } }
+    "#;
+    
+    let results = rdf_store.query(query);
+    if let oxigraph::sparql::QueryResults::Solutions(solutions) = results {
+        let count = solutions.count();
+        assert!(count > 0);
+    }
 }

@@ -119,7 +119,7 @@ impl Blockchain {
             
             bc.chain.push(genesis_block);
             
-            // Save to disk if persistent
+            // Save to disk
             if let Err(e) = bc.rdf_store.save_to_disk() {
                 eprintln!("Warning: Could not save to disk: {}", e);
             }
@@ -213,7 +213,14 @@ impl Blockchain {
                         
                         // Extract RDF data from the block's graph
                         let data_graph_string = data_graph_term.to_string();
-                        let data_graph_uri = data_graph_string.trim_matches('"');
+                        println!("Raw data graph string: '{}'", data_graph_string);
+                        // Handle typed literals - extract the URI part before the type annotation
+                        let data_graph_uri = if let Some(uri_part) = data_graph_string.split("^^").next() {
+                            uri_part.trim_matches('"').trim_matches('<').trim_matches('>')
+                        } else {
+                            data_graph_string.trim_matches('"').trim_matches('<').trim_matches('>')
+                        };
+                        println!("Processed data graph URI: '{}'", data_graph_uri);
                         let data = self.extract_rdf_data_from_graph(data_graph_uri)?;
                         
                         let block = Block {
@@ -236,32 +243,67 @@ impl Blockchain {
 
     /// Extract RDF data from a specific graph
     fn extract_rdf_data_from_graph(&self, graph_uri: &str) -> Result<String> {
-        use oxigraph::io::RdfFormat;
         
-        // Create a temporary store to export the graph data
-        let temp_store = oxigraph::store::Store::new()?;
+        // Debug output
+        println!("Attempting to extract RDF data from graph: '{}'", graph_uri);
+        
         let graph_name = NamedNode::new(graph_uri)?;
         
-        // Copy all quads from the specific graph
+        // Collect all triples from the specific graph
+        let mut triples = Vec::new();
         let graph_name_ref = oxigraph::model::GraphNameRef::NamedNode((&graph_name).into());
         for quad_result in self.rdf_store.store.quads_for_pattern(None, None, None, Some(graph_name_ref)) {
             if let Ok(quad) = quad_result {
-                // Create a new quad without the graph component for export
-                let triple_quad = oxigraph::model::Quad::new(
+                // Create a triple from the quad (without the graph component)
+                let triple = oxigraph::model::Triple::new(
                     quad.subject,
                     quad.predicate,
                     quad.object,
-                    oxigraph::model::GraphName::DefaultGraph,
                 );
-                temp_store.insert(&triple_quad)?;
+                triples.push(triple);
             }
         }
         
-        // Export as Turtle
-        let mut buffer = Vec::new();
-        temp_store.dump_to_writer(RdfFormat::Turtle, &mut buffer)?;
+        println!("Found {} triples in graph '{}'", triples.len(), graph_uri);
         
-        Ok(String::from_utf8(buffer)?)
+        // If no triples, return empty string
+        if triples.is_empty() {
+            return Ok(String::new());
+        }
+        
+        // Manually serialize triples to Turtle format
+        let mut turtle_data = String::new();
+        
+        // Add prefixes (simplified - in a real implementation we'd extract actual prefixes)
+        turtle_data.push_str("@prefix ex: <http://example.org/> .\n");
+        turtle_data.push_str("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n");
+        turtle_data.push_str("@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n");
+        turtle_data.push_str("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n");
+        
+        // Serialize each triple
+        for triple in triples {
+            let subject_str = match &triple.subject {
+                oxigraph::model::Subject::NamedNode(node) => format!("<{}>", node.as_str()),
+                oxigraph::model::Subject::BlankNode(node) => format!("_:{}", node.as_str()),
+                oxigraph::model::Subject::Triple(_) => "<http://example.org/quoted-triple>".to_string(), // Simplified
+            };
+            
+            let predicate_str = match &triple.predicate {
+                node => format!("<{}>", node.as_str()),
+            };
+            
+            let object_str = match &triple.object {
+                oxigraph::model::Term::NamedNode(node) => format!("<{}>", node.as_str()),
+                oxigraph::model::Term::BlankNode(node) => format!("_:{}", node.as_str()),
+                oxigraph::model::Term::Literal(lit) => format!("{}", lit),
+                oxigraph::model::Term::Triple(_) => "<< >>".to_string(), // Simplified
+            };
+            
+            turtle_data.push_str(&format!("{} {} {} .\n", subject_str, predicate_str, object_str));
+        }
+        
+        println!("Generated Turtle data: {}", turtle_data);
+        Ok(turtle_data)
     }
 
     /// Get storage statistics
@@ -341,6 +383,11 @@ impl Blockchain {
         self.rdf_store.add_block_metadata(&new_block);
 
         self.chain.push(new_block);
+        
+        // Save to disk after each block addition
+        if let Err(e) = self.rdf_store.save_to_disk() {
+            eprintln!("Warning: Could not save to disk: {}", e);
+        }
     }
 
     pub fn is_valid(&self) -> bool {
