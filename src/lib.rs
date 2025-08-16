@@ -1,11 +1,11 @@
 pub mod atomic_operations;
-pub mod blockchain;
+pub mod trace_optimization;
 pub mod governance;
+pub mod shacl_validator;
 pub mod rdf_store;
 pub mod config;
 pub mod demo;
 pub mod demo_runner;
-pub mod trace_optimization;
 pub mod transaction;
 pub mod transaction_blockchain;
 pub mod uht_demo;
@@ -16,3 +16,4 @@ pub mod knowledge_graph;
 pub mod network;
 pub mod performance;
 pub mod production;
+pub mod blockchain;

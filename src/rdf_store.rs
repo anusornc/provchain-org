@@ -11,6 +11,7 @@ use anyhow::{Result, Context};
 use tracing::{info, warn, error, debug};
 
 use crate::blockchain::Block;
+// use crate::shacl_validator::{ShaclValidator, ShaclConfig, ShaclValidationResult};
 
 /// Graph complexity classification for adaptive canonicalization
 #[derive(Debug, Clone, PartialEq)]
