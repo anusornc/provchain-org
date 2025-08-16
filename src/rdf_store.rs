@@ -1272,6 +1272,40 @@ impl RDFStore {
         validation_errors
     }
 
+    /// Calculate the state root hash representing the current state of the knowledge graph
+    pub fn calculate_state_root(&self) -> String {
+        // For now, we'll use a simplified approach by exporting all quads and hashing them
+        // In a production implementation, this would use a Merkle tree for efficiency
+        let mut all_data = String::new();
+        
+        // Collect all quads from all graphs
+        for quad_result in self.store.iter() {
+            if let Ok(quad) = quad_result {
+                // Serialize quad to N-Quads format for consistent representation
+                all_data.push_str(&format!("{} {} {} {} .\n", 
+                    self.subject_to_ntriples(&quad.subject),
+                    quad.predicate,
+                    self.term_to_ntriples(&quad.object),
+                    match &quad.graph_name {
+                        oxigraph::model::GraphName::DefaultGraph => "".to_string(),
+                        oxigraph::model::GraphName::NamedNode(node) => format!(" <{}>", node.as_str()),
+                        oxigraph::model::GraphName::BlankNode(node) => format!(" _:{}", node.as_str()),
+                    }
+                ));
+            }
+        }
+        
+        // Sort the data to ensure consistent ordering
+        let mut lines: Vec<&str> = all_data.lines().collect();
+        lines.sort();
+        let sorted_data = lines.join("\n");
+        
+        // Hash the sorted data
+        let mut hasher = Sha256::new();
+        hasher.update(sorted_data.as_bytes());
+        format!("{:x}", hasher.finalize())
+    }
+
     /// Get ontology class hierarchy information
     #[allow(dead_code)]
     pub fn get_ontology_classes(&self) -> Vec<String> {

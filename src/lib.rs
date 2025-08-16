@@ -1,5 +1,6 @@
 pub mod atomic_operations;
 pub mod blockchain;
+pub mod governance;
 pub mod rdf_store;
 pub mod config;
 pub mod demo;

@@ -31,6 +31,8 @@ pub enum TransactionType {
     Environmental,
     /// Regulatory compliance events
     Compliance,
+    /// Governance transactions
+    Governance,
 }
 
 /// Transaction input referencing previous outputs
@@ -107,6 +109,29 @@ pub struct QualityData {
     pub test_timestamp: DateTime<Utc>,
 }
 
+/// Governance action types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GovernanceAction {
+    AddValidator { pub_key: String },
+    RemoveValidator { pub_key: String },
+    UpdateConfiguration { key: String, value: String },
+}
+
+/// Transaction payload variants
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TransactionPayload {
+    /// Standard RDF data payload
+    RdfData(String),
+    /// Governance action payload
+    Governance(GovernanceAction),
+}
+
+impl Default for TransactionPayload {
+    fn default() -> Self {
+        TransactionPayload::RdfData(String::new())
+    }
+}
+
 /// Core transaction structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
@@ -130,6 +155,8 @@ pub struct Transaction {
     pub fee: Option<f64>,
     /// Nonce for replay protection
     pub nonce: u64,
+    /// Transaction payload (RDF data or governance actions)
+    pub payload: Option<TransactionPayload>,
 }
 
 /// Digital signature with signer information
@@ -153,6 +180,7 @@ impl Transaction {
         outputs: Vec<TransactionOutput>,
         rdf_data: String,
         metadata: TransactionMetadata,
+        payload: TransactionPayload,
     ) -> Self {
         let id = Uuid::new_v4().to_string();
         
@@ -167,6 +195,7 @@ impl Transaction {
             metadata,
             fee: None,
             nonce: 0,
+            payload: Some(payload),
         }
     }
 
@@ -515,11 +544,13 @@ mod tests {
             vec![],
             "@prefix ex: <http://example.org/> . ex:test ex:value \"test\" .".to_string(),
             metadata,
+            TransactionPayload::RdfData(String::new()),
         );
 
         assert!(!tx.id.is_empty());
         assert_eq!(tx.tx_type, TransactionType::Production);
         assert!(!tx.rdf_data.is_empty());
+        assert!(tx.payload.is_some());
     }
 
     #[test]
@@ -541,11 +572,13 @@ mod tests {
             vec![],
             "@prefix ex: <http://example.org/> . ex:test ex:value \"test\" .".to_string(),
             metadata,
+            TransactionPayload::RdfData(String::new()),
         );
 
         assert!(tx.sign(&signing_key, signer_id).is_ok());
         assert_eq!(tx.signatures.len(), 1);
         assert!(tx.verify_signatures().unwrap());
+        assert!(tx.payload.is_some());
     }
 
     #[test]
@@ -575,6 +608,7 @@ mod tests {
             }],
             "@prefix ex: <http://example.org/> . ex:test ex:value \"test\" .".to_string(),
             metadata,
+            TransactionPayload::RdfData(String::new()),
         );
 
         tx.sign(&signing_key, signer_id).unwrap();

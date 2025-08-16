@@ -324,6 +324,9 @@ impl ConsensusManager {
 
         // For now, create a block with some sample RDF data
         // In a real implementation, this would collect pending transactions
+        // Calculate state root before creating the block
+        let state_root = self.blockchain.read().await.rdf_store.calculate_state_root();
+        
         let rdf_data = format!(
             "<http://provchain.org/block/{}> <http://provchain.org/timestamp> \"{}\" .\n<http://provchain.org/block/{}> <http://provchain.org/authority> \"{}\" .",
             index,
@@ -332,7 +335,7 @@ impl ConsensusManager {
             self.network.node_id
         );
 
-        Ok(Block::new(index, rdf_data, previous_hash))
+        Ok(Block::new(index, rdf_data, previous_hash, state_root))
     }
 
     /// Serialize block data for signing

@@ -363,6 +363,7 @@ pub async fn create_transaction(
         outputs,
         request.rdf_data,
         metadata,
+        crate::transaction::TransactionPayload::RdfData(String::new()),
     );
 
     let tx_id = transaction.id.clone();

@@ -34,7 +34,7 @@ fn test_rdf_insertion_and_query_in_named_graph() {
 #[test]
 fn test_block_metadata_storage_and_query() {
     let mut store = RDFStore::new();
-    let block = Block::new(1, "test data".into(), "some_hash".into());
+    let block = Block::new(1, "test data".into(), "some_hash".into(), "state_root_hash".into());
     store.add_block_metadata(&block);
 
     let query = r#"PREFIX pc: <http://provchain.org/>

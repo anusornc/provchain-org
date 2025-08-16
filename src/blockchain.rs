@@ -15,10 +15,11 @@ pub struct Block {
     pub data: String, // RDF in Turtle format
     pub previous_hash: String,
     pub hash: String,
+    pub state_root: String, // State root hash for atomic consistency
 }
 
 impl Block {
-    pub fn new(index: u64, data: String, previous_hash: String) -> Self {
+    pub fn new(index: u64, data: String, previous_hash: String, state_root: String) -> Self {
         let timestamp = Utc::now().to_rfc3339();
         let mut block = Block {
             index,
@@ -26,6 +27,7 @@ impl Block {
             data,
             previous_hash,
             hash: String::new(),
+            state_root,
         };
         block.hash = block.calculate_hash();
         block
@@ -224,12 +226,17 @@ impl Blockchain {
                         println!("Processed data graph URI: '{}'", data_graph_uri);
                         let data = self.extract_rdf_data_from_graph(data_graph_uri)?;
                         
+                        // For existing blocks, we'll use a placeholder state_root
+                        // In a real implementation, this would be loaded from the blockchain metadata
+                        let state_root = "0000000000000000000000000000000000000000000000000000000000000000".to_string();
+                        
                         let block = Block {
                             index,
                             timestamp,
                             data,
                             previous_hash,
                             hash,
+                            state_root,
                         };
                         
                         self.chain.push(block);
@@ -353,10 +360,13 @@ impl Blockchain {
     }
 
     fn create_genesis_block(&self) -> Block {
+        // For genesis block, we calculate the initial state root
+        let initial_state_root = self.rdf_store.calculate_state_root();
         Block::new(
             0,
             "@prefix ex: <http://example.org/> . ex:genesis ex:type \"Genesis Block\".".into(),
-            "0".into()
+            "0".into(),
+            initial_state_root
         )
     }
 
@@ -371,7 +381,9 @@ impl Blockchain {
         }
 
         let prev_block = self.chain.last().unwrap();
-        let mut new_block = Block::new(prev_block.index + 1, data.clone(), prev_block.hash.clone());
+        // Calculate the state root before creating the new block
+        let state_root = self.rdf_store.calculate_state_root();
+        let mut new_block = Block::new(prev_block.index + 1, data.clone(), prev_block.hash.clone(), state_root);
 
         // Use atomic operations to ensure consistency
         let mut atomic_context = AtomicOperationContext::new(&mut self.rdf_store);

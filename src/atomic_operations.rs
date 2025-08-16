@@ -110,8 +110,10 @@ mod tests {
         let mut context = AtomicOperationContext::new(&mut blockchain.rdf_store);
         
         // Create a test block
+        // For testing, we'll use a placeholder state root
+        let state_root = "0000000000000000000000000000000000000000000000000000000000000000".to_string();
         let block = Block::new(1, "@prefix ex: <http://example.org/> . ex:test ex:value \"test\" .".to_string(), 
-                              "0".to_string());
+                              "0".to_string(), state_root);
         
         // Add block atomically
         assert!(context.add_block_atomically(&block).is_ok());

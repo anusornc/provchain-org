@@ -12,7 +12,7 @@ use uuid::Uuid;
 use anyhow::{Result, anyhow};
 
 use crate::blockchain::Blockchain;
-use crate::transaction::{Transaction, TransactionPool, TransactionType, TransactionMetadata, TransactionOutput, EnvironmentalConditions, QualityData};
+use crate::transaction::{Transaction, TransactionPool, TransactionType, TransactionMetadata, TransactionOutput, EnvironmentalConditions, QualityData, TransactionPayload};
 use crate::wallet::{WalletManager, Wallet, Participant, ParticipantType};
 
 /// Enhanced blockchain with transaction support
@@ -253,8 +253,9 @@ ex:participant_{} a trace:Farmer ;
             TransactionType::Production,
             vec![], // No inputs for production
             vec![output],
-            rdf_data,
+            rdf_data.clone(),
             metadata,
+            TransactionPayload::RdfData(rdf_data.clone()),
         );
 
         // Sign the transaction
@@ -348,8 +349,9 @@ ex:participant_{} a trace:Manufacturer ;
             TransactionType::Processing,
             inputs,
             vec![output],
-            rdf_data,
+            rdf_data.clone(),
             metadata,
+            TransactionPayload::RdfData(rdf_data.clone()),
         );
 
         // Sign the transaction
@@ -421,8 +423,9 @@ ex:participant_{} a trace:QualityLab ;
             TransactionType::Quality,
             vec![], // Quality checks don't consume inputs
             vec![], // Quality checks don't produce outputs
-            rdf_data,
+            rdf_data.clone(),
             metadata,
+            TransactionPayload::RdfData(rdf_data.clone()),
         );
 
         // Sign the transaction
@@ -485,8 +488,9 @@ ex:participant_{} a trace:LogisticsProvider ;
             TransactionType::Transport,
             vec![], // Simplified - no inputs/outputs for transport
             vec![],
-            rdf_data,
+            rdf_data.clone(),
             metadata,
+            TransactionPayload::RdfData(rdf_data.clone()),
         );
 
         // Sign the transaction
