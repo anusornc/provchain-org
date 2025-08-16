@@ -1,0 +1,27 @@
+flowchart LR
+    subgraph User Interaction
+        direction TB
+        T1["`src/transaction.rs`"]
+    end
+
+    subgraph Blockchain as a Log
+        direction LR
+        B1["**Block #1**"]
+        B2["`src/blockchain.rs`"]
+        B1 -- previous_hash --> B2
+    end
+
+    subgraph Node's State
+        KG_DB["`src/rdf_store.rs` (Oxigraph)"]
+    end
+
+    Query["**SPARQL Query**"]
+
+    T1 --> B2
+
+    B2 -- "Transactions update the state" --> KG_DB
+
+    Query -- "Query directly on the fast state database" --> KG_DB
+
+    style B2 fill:#d4edda,stroke:#333,stroke-width:2px
+    style KG_DB fill:#cce5ff,stroke:#333,stroke-width:2px

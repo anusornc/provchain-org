@@ -3,7 +3,6 @@
 use provchain_org::blockchain::Blockchain;
 use provchain_org::rdf_store::{RDFStore, StorageConfig};
 use tempfile::tempdir;
-use std::path::Path;
 
 #[test]
 fn test_persistent_storage_with_cache() {

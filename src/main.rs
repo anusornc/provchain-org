@@ -56,7 +56,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let rdf_data = fs::read_to_string(&path)
                 .map_err(|e| format!("Cannot read RDF file '{path}': {e}"))?;
             
-            blockchain.add_block(rdf_data);
+            blockchain.add_block(rdf_data)
+                .map_err(|e| format!("Failed to add block: {e}"))?;
             let block_hash = blockchain.chain.last()
                 .map(|b| b.hash.clone())
                 .unwrap_or_else(|| "unknown".to_string());
@@ -108,7 +109,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             
             // Add each piece of demo data as a separate block
             for data in demo_data {
-                blockchain.add_block(data.to_string());
+                blockchain.add_block(data.to_string())
+                    .map_err(|e| format!("Failed to add block: {e}"))?;
             }
             
             // Create and start the web server

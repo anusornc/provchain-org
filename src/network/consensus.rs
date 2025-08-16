@@ -47,6 +47,10 @@ pub struct AuthorityState {
     pub last_block_time: DateTime<Utc>,
     /// Authority performance tracking
     pub authority_performance: HashMap<Uuid, AuthorityPerformance>,
+    /// List of authority IDs in rotation order
+    pub authority_rotation_order: Vec<Uuid>,
+    /// Index of current authority in rotation
+    pub current_authority_index: usize,
 }
 
 /// Authority performance metrics
@@ -107,6 +111,8 @@ impl ConsensusManager {
             current_authority: None,
             last_block_time: Utc::now(),
             authority_performance: HashMap::new(),
+            authority_rotation_order: Vec::new(),
+            current_authority_index: 0,
         };
 
         Ok(Self {
@@ -204,9 +210,45 @@ impl ConsensusManager {
             return Ok(false);
         }
 
-        // In a simple round-robin system, we'd check if it's our turn
-        // For now, any authority can create a block if enough time has passed
-        Ok(true)
+        // Check if it's our turn in the round-robin rotation
+        let authority_keys = self.authority_keys.read().await;
+        if authority_keys.is_empty() {
+            return Ok(false);
+        }
+
+        // Get our authority ID
+        let our_authority_id = if let Some(keypair) = &self.authority_keypair {
+            // In a real implementation, we would derive the ID from the public key
+            // For now, we'll use a placeholder approach
+            let public_key = keypair.verifying_key();
+            // Find our ID in the authority keys
+            authority_keys.iter().find_map(|(id, key)| {
+                if key == &public_key {
+                    Some(*id)
+                } else {
+                    None
+                }
+            })
+        } else {
+            None
+        };
+
+        if let Some(our_id) = our_authority_id {
+            // Check if we're the current authority in rotation
+            if let Some(current_authority) = authority_state.current_authority {
+                Ok(current_authority == our_id)
+            } else {
+                // If no current authority is set, check if we're first in rotation
+                if !authority_state.authority_rotation_order.is_empty() {
+                    Ok(authority_state.authority_rotation_order[0] == our_id)
+                } else {
+                    // Fallback: any authority can create if rotation order is empty
+                    Ok(true)
+                }
+            }
+        } else {
+            Ok(false)
+        }
     }
 
     /// Create and propose a new block
@@ -230,20 +272,39 @@ impl ConsensusManager {
             timestamp: Utc::now(),
         };
 
-        // Add block to our local blockchain
+        // Add block to our local blockchain using atomic operations
         {
             let mut blockchain = self.blockchain.write().await;
-            blockchain.add_block(block.data.clone());
+            blockchain.add_block(block.data.clone())?;
         }
 
         // Broadcast the block to the network
         self.broadcast_block_proposal(proposal).await?;
         
-        // Update authority state
+        // Update authority state for round-robin rotation
         {
             let mut authority_state = self.authority_state.write().await;
             authority_state.last_block_time = Utc::now();
             authority_state.current_round += 1;
+            
+            // Update round-robin rotation
+            if !authority_state.authority_rotation_order.is_empty() {
+                authority_state.current_authority_index = 
+                    (authority_state.current_authority_index + 1) % authority_state.authority_rotation_order.len();
+                
+                if authority_state.current_authority_index < authority_state.authority_rotation_order.len() {
+                    authority_state.current_authority = 
+                        Some(authority_state.authority_rotation_order[authority_state.current_authority_index]);
+                }
+            }
+            
+            // Update performance metrics
+            if let Some(current_authority) = authority_state.current_authority {
+                if let Some(performance) = authority_state.authority_performance.get_mut(&current_authority) {
+                    performance.blocks_created += 1;
+                    performance.last_activity = Utc::now();
+                }
+            }
         }
 
         info!("Successfully created and broadcast block {}", block.index);

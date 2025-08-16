@@ -1,3 +1,4 @@
+pub mod atomic_operations;
 pub mod blockchain;
 pub mod rdf_store;
 pub mod config;

@@ -170,8 +170,45 @@ impl Transaction {
         }
     }
 
-    /// Calculate transaction hash for signing
+    /// Calculate transaction hash for signing using RDF canonicalization
     pub fn calculate_hash(&self) -> String {
+        // Create a temporary RDF store to canonicalize the RDF data
+        let mut temp_store = crate::rdf_store::RDFStore::new();
+        
+        // Parse the RDF data into the temporary store
+        if !self.rdf_data.is_empty() {
+            use oxigraph::model::NamedNode;
+            use std::io::Cursor;
+            use oxigraph::io::RdfFormat;
+            
+            let graph_name = NamedNode::new(format!("http://provchain.org/tx/{}", self.id))
+                .unwrap_or_else(|_| NamedNode::new("http://provchain.org/tx/temp").unwrap());
+            
+            let reader = Cursor::new(self.rdf_data.as_bytes());
+            if temp_store.store.load_from_reader(RdfFormat::Turtle, reader).is_ok() {
+                // Use canonicalization to get a consistent hash
+                let canonical_hash = temp_store.canonicalize_graph(&graph_name);
+                
+                // Include the canonicalized RDF hash in our transaction hash
+                let mut hasher = Sha256::new();
+                hasher.update(self.id.as_bytes());
+                hasher.update(serde_json::to_string(&self.tx_type).unwrap().as_bytes());
+                hasher.update(serde_json::to_string(&self.inputs).unwrap().as_bytes());
+                hasher.update(serde_json::to_string(&self.outputs).unwrap().as_bytes());
+                hasher.update(canonical_hash.as_bytes()); // Use canonicalized RDF hash
+                hasher.update(self.timestamp.to_rfc3339().as_bytes());
+                hasher.update(serde_json::to_string(&self.metadata).unwrap().as_bytes());
+                hasher.update(&self.nonce.to_le_bytes());
+                
+                if let Some(fee) = self.fee {
+                    hasher.update(&fee.to_le_bytes());
+                }
+                
+                return format!("{:x}", hasher.finalize());
+            }
+        }
+        
+        // Fallback to original method if RDF parsing fails
         let mut hasher = Sha256::new();
         
         // Include all transaction data except signatures

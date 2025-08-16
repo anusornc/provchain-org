@@ -90,7 +90,7 @@ impl TransactionBlockchain {
         let block_data = self.create_block_rdf_data(&transactions)?;
         
         // Add block to blockchain
-        self.blockchain.add_block(block_data);
+        self.blockchain.add_block(block_data)?;
         
         // Update transaction index and UTXO set
         let block_index = self.blockchain.chain.len() as u64 - 1;

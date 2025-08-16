@@ -3,9 +3,12 @@ use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
 use crate::rdf_store::{RDFStore, StorageConfig};
 use crate::trace_optimization::{EnhancedTraceabilitySystem, EnhancedTraceResult};
+use crate::atomic_operations::AtomicOperationContext;
 use oxigraph::model::NamedNode;
 use std::path::Path;
-use anyhow::Result;
+use anyhow::{Result, bail};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Block {
@@ -359,7 +362,7 @@ impl Blockchain {
         )
     }
 
-    pub fn add_block(&mut self, data: String) {
+    pub fn add_block(&mut self, data: String) -> Result<()> {
         // Ensure we have at least a genesis block
         if self.chain.is_empty() {
             let genesis_block = self.create_genesis_block();
@@ -372,22 +375,21 @@ impl Blockchain {
         let prev_block = self.chain.last().unwrap();
         let mut new_block = Block::new(prev_block.index + 1, data.clone(), prev_block.hash.clone());
 
-        // Add RDF data to the store first
-        let graph_name = NamedNode::new(format!("http://provchain.org/block/{}", new_block.index)).unwrap();
-        self.rdf_store.add_rdf_to_graph(&data, &graph_name);
+        // Use atomic operations to ensure consistency
+        let mut atomic_context = AtomicOperationContext::new(&mut self.rdf_store);
         
-        // Recalculate hash using RDF canonicalization
+        // Add RDF data and block metadata atomically
+        atomic_context.add_block_atomically(&new_block)?;
+        
+        // Recalculate hash using RDF canonicalization after successful atomic operation
         new_block.hash = new_block.calculate_hash_with_store(Some(&self.rdf_store));
         
-        // Add block metadata to store
+        // Update the block metadata with the new hash
         self.rdf_store.add_block_metadata(&new_block);
 
         self.chain.push(new_block);
         
-        // Save to disk after each block addition
-        if let Err(e) = self.rdf_store.save_to_disk() {
-            eprintln!("Warning: Could not save to disk: {}", e);
-        }
+        Ok(())
     }
 
     pub fn is_valid(&self) -> bool {
