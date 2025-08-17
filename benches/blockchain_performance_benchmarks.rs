@@ -3,7 +3,7 @@
 //! Comprehensive performance benchmarks covering all aspects of ProvChain
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use provchain_org::blockchain::Blockchain;
+use provchain_org::core::blockchain::Blockchain;
 use std::time::Duration;
 
 /// Benchmark blockchain throughput with different transaction loads

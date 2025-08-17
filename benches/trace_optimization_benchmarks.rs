@@ -4,7 +4,7 @@
 //! and pivot selection algorithms for supply chain traceability queries
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use provchain_org::blockchain::Blockchain;
+use provchain_org::core::blockchain::Blockchain;
 use provchain_org::trace_optimization::EnhancedTraceabilitySystem;
 use std::time::Duration;
 

@@ -3,7 +3,7 @@
 //! Benchmarks different RDF canonicalization algorithms and complexity scenarios
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use provchain_org::blockchain::Blockchain;
+use provchain_org::core::blockchain::Blockchain;
 use std::time::Duration;
 
 /// Benchmark RDF canonicalization with different graph complexities
