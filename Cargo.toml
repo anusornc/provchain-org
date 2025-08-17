@@ -113,3 +113,9 @@ harness = false
 [[bin]]
 name = "demo_ui"
 path = "demo_ui.rs"
+
+[[test]]
+name = "three_node_validation_test"
+path = "tests/three_node_validation_test.rs"
+harness = true
+
