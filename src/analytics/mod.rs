@@ -8,7 +8,7 @@ pub mod sustainability;
 pub mod predictive;
 
 use crate::knowledge_graph::KnowledgeGraph;
-use crate::rdf_store::RDFStore;
+use crate::storage::rdf_store::RDFStore;
 use std::collections::HashMap;
 use anyhow::Result;
 use chrono::{DateTime, Utc};

@@ -1,8 +1,8 @@
 //! HTTP handlers for REST API endpoints
 
-use crate::blockchain::Blockchain;
+use crate::core::blockchain::Blockchain;
 use crate::trace_optimization::EnhancedTraceResult;
-use crate::transaction::{Transaction, TransactionType, TransactionMetadata, EnvironmentalConditions, QualityData, ComplianceInfo};
+use crate::transaction::transaction::{Transaction, TransactionType, TransactionMetadata, EnvironmentalConditions, QualityData, ComplianceInfo, TransactionInput, TransactionOutput, TransactionPayload};
 use crate::wallet::{Participant, ParticipantType, ContactInfo};
 use crate::web::models::{
     BlockchainStatus, BlockInfo, TransactionInfo, AddTripleRequest, 
@@ -338,7 +338,7 @@ pub async fn create_transaction(
 
     // Convert inputs and outputs
     let inputs = request.inputs.into_iter().map(|input| {
-        crate::transaction::TransactionInput {
+        TransactionInput {
             prev_tx_id: input.prev_tx_id,
             output_index: input.output_index,
             signature: None,
@@ -347,7 +347,7 @@ pub async fn create_transaction(
     }).collect();
 
     let outputs = request.outputs.into_iter().map(|output| {
-        crate::transaction::TransactionOutput {
+        TransactionOutput {
             id: output.id,
             owner: uuid::Uuid::parse_str(&output.owner).unwrap_or(uuid::Uuid::nil()),
             asset_type: output.asset_type,
@@ -363,7 +363,7 @@ pub async fn create_transaction(
         outputs,
         request.rdf_data,
         metadata,
-        crate::transaction::TransactionPayload::RdfData(String::new()),
+        TransactionPayload::RdfData(String::new()),
     );
 
     let tx_id = transaction.id.clone();

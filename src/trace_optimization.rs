@@ -5,7 +5,7 @@
 //! from single-source shortest path algorithms to optimize RDF graph
 //! traversal for supply chain traceability queries.
 
-use crate::blockchain::Blockchain;
+use crate::core::blockchain::Blockchain;
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
@@ -422,7 +422,7 @@ impl<'a> EnhancedTraceabilitySystem<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blockchain::Blockchain;
+    use crate::core::blockchain::Blockchain;
     
     #[test]
     fn test_trace_frontier_creation() {

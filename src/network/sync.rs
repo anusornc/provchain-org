@@ -14,7 +14,7 @@ use anyhow::Result;
 use tracing::{info, warn, debug, error};
 use chrono::{DateTime, Utc};
 
-use crate::blockchain::{Blockchain, Block};
+use crate::core::blockchain::{Blockchain, Block};
 use super::messages::P2PMessage;
 use super::NetworkManager;
 
@@ -459,7 +459,7 @@ pub struct SyncStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::NodeConfig;
+    use crate::utils::config::NodeConfig;
     
     #[tokio::test]
     async fn test_sync_state_creation() {

@@ -1,5 +1,5 @@
-use provchain_org::blockchain::Blockchain;
-use provchain_org::rdf_store::StorageConfig;
+use provchain_org::core::blockchain::Blockchain;
+use provchain_org::storage::rdf_store::StorageConfig;
 use tempfile::tempdir;
 
 #[test]

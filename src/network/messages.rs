@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
-use crate::blockchain::Block;
+use crate::core::blockchain::Block;
 
 /// All possible P2P messages exchanged between GraphChain nodes
 #[derive(Debug, Clone, Serialize, Deserialize)]

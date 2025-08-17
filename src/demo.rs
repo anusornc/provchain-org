@@ -1,4 +1,4 @@
-use crate::blockchain::Blockchain;
+use crate::core::blockchain::Blockchain;
 use std::fs;
 
 pub fn run_demo() {

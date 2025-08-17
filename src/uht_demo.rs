@@ -8,9 +8,9 @@ use chrono::{Utc, Duration};
 use uuid::Uuid;
 use anyhow::Result;
 
-use crate::transaction_blockchain::TransactionBlockchain;
+use crate::transaction::blockchain::TransactionBlockchain;
 use crate::wallet::{Participant, Certificate, CertificateStatus};
-use crate::transaction::EnvironmentalConditions;
+use crate::transaction::transaction::EnvironmentalConditions;
 
 /// UHT Manufacturing Demo
 pub struct UHTDemo {

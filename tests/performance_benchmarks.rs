@@ -2,7 +2,7 @@
 //! 
 //! Comprehensive performance testing for realistic scenarios and stress testing
 
-use provchain_org::blockchain::Blockchain;
+use provchain_org::core::blockchain::Blockchain;
 use std::time::{Duration, Instant};
 use anyhow::Result;
 

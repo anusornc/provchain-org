@@ -9,9 +9,9 @@
 //! - Integration scenarios
 
 use provchain_org::web::{WebServer, models::*};
-use provchain_org::blockchain::Blockchain;
-use provchain_org::rdf_store::RDFStore;
-use provchain_org::config::NodeConfig;
+use provchain_org::core::blockchain::Blockchain;
+use provchain_org::storage::rdf_store::RDFStore;
+use provchain_org::utils::config::NodeConfig;
 use serde_json::json;
 use chrono::Utc;
 

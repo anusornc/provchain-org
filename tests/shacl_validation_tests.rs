@@ -1,5 +1,5 @@
-use provchain_org::shacl_validator::{ShaclValidator, ShaclConfig};
-use provchain_org::rdf_store::RDFStore;
+use provchain_org::semantic::shacl_validator::{ShaclValidator, ShaclConfig};
+use provchain_org::storage::rdf_store::RDFStore;
 use oxigraph::model::NamedNode;
 
 #[test]
@@ -230,7 +230,7 @@ fn test_format_validation_report() {
     let validator = ShaclValidator::new(config).expect("Failed to create SHACL validator");
     
     // Test formatting with conforming data
-    let conforming_result = provchain_org::shacl_validator::ShaclValidationResult {
+    let conforming_result = provchain_org::semantic::shacl_validator::ShaclValidationResult {
         conforms: true,
         errors: vec![],
         warnings: vec![],
@@ -240,10 +240,10 @@ fn test_format_validation_report() {
     assert!(report.contains("passed"), "Report should indicate validation passed");
     
     // Test formatting with non-conforming data
-    let non_conforming_result = provchain_org::shacl_validator::ShaclValidationResult {
+    let non_conforming_result = provchain_org::semantic::shacl_validator::ShaclValidationResult {
         conforms: false,
         errors: vec![
-            provchain_org::shacl_validator::ShaclValidationError {
+            provchain_org::semantic::shacl_validator::ShaclValidationError {
                 message: "Test error message".to_string(),
                 focus_node: Some("http://example.org/node1".to_string()),
                 path: Some("http://example.org/property".to_string()),

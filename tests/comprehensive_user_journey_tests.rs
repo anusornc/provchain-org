@@ -4,7 +4,7 @@
 //! performance benchmarks, and edge case handling.
 
 use provchain_org::{
-    blockchain::Blockchain,
+    core::blockchain::Blockchain,
 };
 use serde_json::json;
 use std::time::{Duration, Instant};

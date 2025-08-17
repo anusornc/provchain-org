@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use provchain_org::{blockchain::Blockchain, demo, web::server::create_web_server, demo_runner::run_demo_with_args};
+use provchain_org::{core::blockchain::Blockchain, demo, web::server::create_web_server, demo_runner::run_demo_with_args};
 use std::fs;
 use tracing::info;
 

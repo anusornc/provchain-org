@@ -137,7 +137,7 @@ impl DemoRunner {
 
     /// Run basic blockchain demo
     fn run_basic_blockchain_demo(&self) -> Result<()> {
-        use crate::transaction_blockchain::TransactionBlockchain;
+        use crate::transaction::blockchain::TransactionBlockchain;
         use crate::wallet::Participant;
         
         println!("Creating a basic blockchain with simple transactions...");
@@ -188,7 +188,7 @@ impl DemoRunner {
 
     /// Run transaction signing demo
     fn run_transaction_signing_demo(&self) -> Result<()> {
-        use crate::transaction_blockchain::TransactionBlockchain;
+        use crate::transaction::blockchain::TransactionBlockchain;
         use crate::wallet::Participant;
         
         println!("Demonstrating transaction signing and validation...");
@@ -232,7 +232,7 @@ impl DemoRunner {
 
     /// Run multi-participant demo
     fn run_multi_participant_demo(&self) -> Result<()> {
-        use crate::transaction_blockchain::TransactionBlockchain;
+        use crate::transaction::blockchain::TransactionBlockchain;
         use crate::wallet::Participant;
         
         println!("Demonstrating multi-participant network...");

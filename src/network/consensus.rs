@@ -15,8 +15,8 @@ use tracing::{info, warn, debug, error};
 use chrono::{DateTime, Utc, Duration};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature, Signer, Verifier};
 
-use crate::blockchain::{Blockchain, Block};
-use crate::config::ConsensusConfig;
+use crate::core::blockchain::{Blockchain, Block};
+use crate::utils::config::ConsensusConfig;
 use super::messages::P2PMessage;
 use super::NetworkManager;
 
@@ -571,7 +571,7 @@ pub struct ConsensusStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::NodeConfig;
+    use crate::utils::config::NodeConfig;
     
     #[tokio::test]
     async fn test_consensus_manager_creation() {

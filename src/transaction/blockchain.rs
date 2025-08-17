@@ -11,8 +11,8 @@ use chrono::Utc;
 use uuid::Uuid;
 use anyhow::{Result, anyhow};
 
-use crate::blockchain::Blockchain;
-use crate::transaction::{Transaction, TransactionPool, TransactionType, TransactionMetadata, TransactionOutput, EnvironmentalConditions, QualityData, TransactionPayload};
+use crate::core::blockchain::Blockchain;
+use crate::transaction::transaction::{Transaction, TransactionPool, TransactionType, TransactionMetadata, TransactionOutput, EnvironmentalConditions, QualityData, TransactionPayload};
 use crate::wallet::{WalletManager, Wallet, Participant, ParticipantType};
 
 /// Enhanced blockchain with transaction support
@@ -285,7 +285,7 @@ ex:participant_{} a trace:Farmer ;
 
         // Create transaction inputs (simplified - in reality we'd look up the actual UTXOs)
         let inputs = input_batch_ids.iter().enumerate().map(|(_i, batch_id)| {
-            crate::transaction::TransactionInput {
+            crate::transaction::transaction::TransactionInput {
                 prev_tx_id: batch_id.clone(),
                 output_index: 0,
                 signature: None,

@@ -1,9 +1,9 @@
 use chrono::Utc;
 use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
-use crate::rdf_store::{RDFStore, StorageConfig};
+use crate::storage::rdf_store::{RDFStore, StorageConfig};
 use crate::trace_optimization::{EnhancedTraceabilitySystem, EnhancedTraceResult};
-use crate::atomic_operations::AtomicOperationContext;
+use crate::core::atomic_operations::AtomicOperationContext;
 use oxigraph::model::NamedNode;
 use std::path::Path;
 use anyhow::Result;
@@ -315,17 +315,17 @@ impl Blockchain {
     }
 
     /// Get storage statistics
-    pub fn get_storage_stats(&self) -> Result<crate::rdf_store::StorageStats> {
+    pub fn get_storage_stats(&self) -> Result<crate::storage::rdf_store::StorageStats> {
         self.rdf_store.get_storage_stats()
     }
 
     /// Create a backup of the blockchain
-    pub fn create_backup(&self) -> Result<crate::rdf_store::BackupInfo> {
+    pub fn create_backup(&self) -> Result<crate::storage::rdf_store::BackupInfo> {
         self.rdf_store.create_backup()
     }
 
     /// List available backups
-    pub fn list_backups(&self) -> Result<Vec<crate::rdf_store::BackupInfo>> {
+    pub fn list_backups(&self) -> Result<Vec<crate::storage::rdf_store::BackupInfo>> {
         self.rdf_store.list_backups()
     }
 
@@ -355,7 +355,7 @@ impl Blockchain {
     }
 
     /// Check database integrity
-    pub fn check_integrity(&self) -> Result<crate::rdf_store::IntegrityReport> {
+    pub fn check_integrity(&self) -> Result<crate::storage::rdf_store::IntegrityReport> {
         self.rdf_store.check_integrity()
     }
 
@@ -425,7 +425,7 @@ impl Blockchain {
     /// Validate that the block's data field matches what's stored in the RDF store
     pub fn validate_block_data_integrity(&self, block: &Block) -> bool {
         // Create a temporary RDF store to parse the block's data
-        let mut temp_rdf_store = crate::rdf_store::RDFStore::new();
+        let mut temp_rdf_store = crate::storage::RDFStore::new();
         
         // Use the same graph name structure as the main store for proper comparison
         let graph_name = NamedNode::new(format!("http://provchain.org/block/{}", block.index)).unwrap();

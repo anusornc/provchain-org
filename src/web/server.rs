@@ -1,6 +1,6 @@
 //! Web server implementation using Axum
 
-use crate::blockchain::Blockchain;
+use crate::core::blockchain::Blockchain;
 use crate::web::{
     auth::{AuthState, authenticate, auth_middleware},
     handlers::{
@@ -203,7 +203,7 @@ pub async fn create_web_server(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blockchain::Blockchain;
+    use crate::core::blockchain::Blockchain;
 
     #[tokio::test]
     async fn test_server_creation() {

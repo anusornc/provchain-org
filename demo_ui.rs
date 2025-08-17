@@ -2,7 +2,7 @@
 //! This script starts the web server and adds some sample data
 
 use provchain_org::{
-    blockchain::Blockchain,
+    core::blockchain::Blockchain,
     web::server::create_web_server,
 };
 use tokio;

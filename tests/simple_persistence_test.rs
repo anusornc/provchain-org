@@ -1,4 +1,4 @@
-use provchain_org::blockchain::Blockchain;
+use provchain_org::core::blockchain::Blockchain;
 use tempfile::tempdir;
 
 #[test]

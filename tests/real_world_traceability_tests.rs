@@ -4,8 +4,8 @@
 //! traceability scenarios, including entity linking, graph analytics,
 //! and industry-specific compliance testing.
 
-use provchain_org::blockchain::Blockchain;
-use provchain_org::rdf_store::RDFStore;
+use provchain_org::core::blockchain::Blockchain;
+use provchain_org::storage::rdf_store::RDFStore;
 use provchain_org::knowledge_graph::KnowledgeGraph;
 use provchain_org::knowledge_graph::graph_db::GraphDatabase;
 use provchain_org::knowledge_graph::builder::GraphBuilder;

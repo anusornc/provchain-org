@@ -1,7 +1,7 @@
-use provchain_org::rdf_store::RDFStore;
+use provchain_org::storage::rdf_store::RDFStore;
 use oxigraph::model::NamedNode;
 use oxigraph::sparql::QueryResults;
-use provchain_org::blockchain::Block;
+use provchain_org::core::blockchain::Block;
 
 #[test]
 fn test_rdf_insertion_and_query_in_named_graph() {

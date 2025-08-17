@@ -3,7 +3,7 @@
 //! Tests for authentication, authorization, input validation,
 //! and security edge cases.
 
-use provchain_org::blockchain::Blockchain;
+use provchain_org::core::blockchain::Blockchain;
 use reqwest::Client;
 use serde_json::json;
 use std::time::Duration;

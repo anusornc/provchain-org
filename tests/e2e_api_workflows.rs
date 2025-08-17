@@ -4,7 +4,7 @@
 //! query processing, traceability pipelines, and real-time updates.
 
 use provchain_org::{
-    blockchain::Blockchain,
+    core::blockchain::Blockchain,
     web::server::create_web_server,
 };
 use serde_json::json;

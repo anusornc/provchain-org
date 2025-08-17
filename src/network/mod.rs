@@ -18,7 +18,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 use anyhow::Result;
 
-use crate::config::NodeConfig;
+use crate::utils::config::NodeConfig;
 use self::peer::PeerConnection;
 use self::messages::{P2PMessage, PeerInfo};
 

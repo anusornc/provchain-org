@@ -8,7 +8,7 @@
 use std::collections::HashSet;
 use uuid::Uuid;
 use anyhow::Result;
-use crate::transaction::{Transaction, TransactionPayload, GovernanceAction};
+use crate::transaction::transaction::{Transaction, TransactionPayload, GovernanceAction, TransactionType, TransactionMetadata};
 
 /// Governance module for managing validator set and network configuration
 pub struct Governance {
@@ -137,11 +137,11 @@ impl Governance {
         let payload = TransactionPayload::Governance(GovernanceAction::AddValidator { pub_key });
         
         let mut tx = Transaction::new(
-            crate::transaction::TransactionType::Compliance,
+            TransactionType::Compliance,
             vec![], // No inputs for governance transactions
             vec![], // No outputs for governance transactions
             String::new(), // No RDF data for governance transactions
-            crate::transaction::TransactionMetadata {
+            TransactionMetadata {
                 location: None,
                 environmental_conditions: None,
                 compliance_info: None,
@@ -168,11 +168,11 @@ impl Governance {
         let payload = TransactionPayload::Governance(GovernanceAction::RemoveValidator { pub_key });
         
         let mut tx = Transaction::new(
-            crate::transaction::TransactionType::Compliance,
+            TransactionType::Compliance,
             vec![], // No inputs for governance transactions
             vec![], // No outputs for governance transactions
             String::new(), // No RDF data for governance transactions
-            crate::transaction::TransactionMetadata {
+            TransactionMetadata {
                 location: None,
                 environmental_conditions: None,
                 compliance_info: None,
@@ -218,11 +218,11 @@ mod tests {
         });
         
         let tx = Transaction::new(
-            crate::transaction::TransactionType::Compliance,
+            crate::transaction::transaction::TransactionType::Compliance,
             vec![],
             vec![],
             String::new(),
-            crate::transaction::TransactionMetadata {
+            crate::transaction::transaction::TransactionMetadata {
                 location: None,
                 environmental_conditions: None,
                 compliance_info: None,

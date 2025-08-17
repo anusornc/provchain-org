@@ -4,7 +4,7 @@
 //! entity extraction and classification, and relationship discovery.
 
 use super::{KnowledgeEntity, KnowledgeRelationship, KnowledgeGraph};
-use crate::rdf_store::RDFStore;
+use crate::storage::rdf_store::RDFStore;
 use oxigraph::model::*;
 use oxigraph::sparql::QueryResults;
 use std::collections::HashMap;

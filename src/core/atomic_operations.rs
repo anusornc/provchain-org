@@ -4,8 +4,8 @@
 //! between blockchain state and RDF store state.
 
 use anyhow::{Result, bail};
-use crate::blockchain::Block;
-use crate::rdf_store::RDFStore;
+use crate::core::blockchain::Block;
+use crate::storage::rdf_store::RDFStore;
 use oxigraph::model::NamedNode;
 
 /// Atomic operation context that ensures consistency between blockchain and RDF store
@@ -102,7 +102,7 @@ impl<'a> AtomicOperationContext<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blockchain::Blockchain;
+    use crate::core::blockchain::Blockchain;
 
     #[test]
     fn test_atomic_operation_context() {
